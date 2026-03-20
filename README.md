@@ -3,10 +3,18 @@ This project aims to simulate BNSF Railway systems (largely from guesswork; I ha
 experience with them) for the purpose of learning how messaging might work between the trains 
 and the central data centers.
 
+# Secrets management
+This project uses OpenBao for its similarity to HashiCorp Vault. Ensure you have it installed 
+and run ```helm/set_secrets.sh``` to pull secrets into env vars before deploying.
+
 # Folder structure
 Each service lives in its own folder. Each folder will have its own README.md for usage 
 and contributing instructions. The services will be deployed via helm, which will track 
-versions when updates are needed.
+versions when updates are needed. Each subfolder will use semantic versioning to track 
+its own version. There is no versioning for the monorepo as a whole.
 
 * helm > deployment config for helm package mgr -> kubernetes
 * pki > Certificate Authority and REST API for trains to register for certificates.
+
+# Ports (dev / staging / prod):
+* pki: 8080 / 8100 / 8200

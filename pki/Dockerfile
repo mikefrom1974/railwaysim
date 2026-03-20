@@ -39,8 +39,8 @@ EXPOSE 8080
 VOLUME ["/app/ca_data"]
 
 # set environment variable for our tokens (should be overridden in Kubernetes)
-ENV ISSUETOKEN=""
-ENV ADMINTOKEN=""
+ENV PKIISSUETOKEN=""
+ENV PKIADMINTOKEN=""
 
 # set the entrypoint to run the API
 ENTRYPOINT ["/app/pki"]

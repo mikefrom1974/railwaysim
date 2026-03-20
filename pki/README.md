@@ -8,7 +8,7 @@
 ### Contribute:
 * Make branch 
 * Modify .go files as needed.
-* Update version (Changelog below, Dockerfile, helm staging or prod)
+* Update version (Changelog below, Dockerfile)
 * Test locally
     ```export ISSUETOKEN="dev"```
     ```export ADMINTOKEN="dev"```
@@ -20,16 +20,18 @@
     * Switch back to main, pull
         * We will not be tagging / releasing since this is a monorepo
     * Build docker image (see command in Dockerfile)
-        * Test container if needed
-        * ```docker run -d --restart=always -p 8080:8080 -e ISSUETOKEN=dev -e ADMINTOKEN=dev pki:<version>```
-        * If needed, wipe local containers
+        * test container if necessary (watch for port conflicts)
+        * ```docker run -d --restart=always -p 8080:8080 -e PKIISSUETOKEN=dev -e PKIADMINTOKEN=dev pki:<version>```
+        * If needed, wipe unneeded / conflicting containers
             * ```docker ps -a```
             * ```docker stop <container id or name>```
             * ```docker rm <container id or name>```
             * ```docker images```
             * ```docker rmi <image id>```
-* ENSURE YOU ARE IN THE helm FOLDER
-    * Use helm to upgrade the pods (see helm README)
+    * Once you're ready to push the new container version into production, update docker-compose.yml in root folder with the new version.
+        * then ENSURE YOU'RE IN THE ROOT FOLDER
+        * ```source ./secrets.sh```
+        * ```docker-compose up -d```
 
 ### Changelog (Semantic Versioning):
 **v0.1.0**

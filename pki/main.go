@@ -23,9 +23,10 @@ const (
 var (
 	Version = "development" // set at build time with -ldflags "-X main.Version=1.0.0"
 
-	certAuth   *CA
-	issueToken = os.Getenv("ISSUETOKEN")
-	adminToken = os.Getenv("ADMINTOKEN")
+	certAuth    *CA
+	issueToken  = os.Getenv("PKIISSUETOKEN")
+	adminToken  = os.Getenv("PKIADMINTOKEN")
+	Environment = os.Getenv("ENVIRONMENT")
 )
 
 func main() {
@@ -38,7 +39,7 @@ func main() {
 
 	// check if the admin token is set	// (not used in this example, but you can implement admin endpoints that require this token)
 	if adminToken == "" {
-		log.Fatal("ADMINTOKEN environment variable is not set.")
+		log.Fatal("PKIADMINTOKEN environment variable is not set.")
 	}
 
 	// load CA from disk or initialize a new one
@@ -61,7 +62,7 @@ func main() {
 func startHTTPServer() {
 	// handler for health check
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		versionInfo := fmt.Sprintf("PKI version: %s", Version)
+		versionInfo := fmt.Sprintf("PKI version: %s (%s environment)", Version, Environment)
 		w.WriteHeader(http.StatusOK)
 		if _, e := w.Write([]byte(versionInfo)); e != nil {
 			log.Printf("Failed to write health check response: %v", e)
