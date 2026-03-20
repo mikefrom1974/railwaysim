@@ -29,7 +29,7 @@
             * ```docker images```
             * ```docker rmi <image id>```
 * ENSURE YOU ARE IN THE helm FOLDER
-    * Use helm to upgrade the pods (see helm folder)
+    * Use helm to upgrade the pods (see helm README)
 
 ### Changelog (Semantic Versioning):
 **v0.1.0**
