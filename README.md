@@ -5,7 +5,11 @@ and the central data centers.
 
 # Secrets management
 This project uses OpenBao for its similarity to HashiCorp Vault. Ensure you have it installed 
-and run ```helm/set_secrets.sh``` to pull secrets into env vars before deploying.
+and run ```source ./secrets.sh``` to pull secrets into env vars before deploying.
+
+# Deploy
+Ensure you are in the root folder.
+```docker-compose up -d```
 
 # Folder structure
 Each service lives in its own folder. Each folder will have its own README.md for usage 
@@ -13,7 +17,6 @@ and contributing instructions. The services will be deployed via helm, which wil
 versions when updates are needed. Each subfolder will use semantic versioning to track 
 its own version. There is no versioning for the monorepo as a whole.
 
-* helm > deployment config for helm package mgr -> kubernetes
 * pki > Certificate Authority and REST API for trains to register for certificates.
 
 # Ports (dev / staging / prod):

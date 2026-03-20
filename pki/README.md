@@ -10,8 +10,8 @@
 * Modify .go files as needed.
 * Update version (Changelog below, Dockerfile)
 * Test locally
-    ```export ISSUETOKEN="dev"```
-    ```export ADMINTOKEN="dev"```
+    ```export PKIISSUETOKEN="dev"```
+    ```export PKIADMINTOKEN="dev"```
     ```go run *.go"```
     Test http://localhost:8080/version etc
 * ENSURE YOU ARE IN THE pki FOLDER
@@ -28,7 +28,8 @@
             * ```docker rm <container id or name>```
             * ```docker images```
             * ```docker rmi <image id>```
-    * Once you're ready to push the new container version into production, update docker-compose.yml in root folder with the new version.
+    * Once you're ready to push the new container version into production:
+        * update docker-compose.yml in root folder with the new version (try in staging first!)
         * then ENSURE YOU'RE IN THE ROOT FOLDER
         * ```source ./secrets.sh```
         * ```docker-compose up -d```
