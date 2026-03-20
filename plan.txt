@@ -1,0 +1,102 @@
+BNSF STAFF INTERVIEW PREP MAP
+
+TECHNOLOGY CHECKLIST (REAL-WORLD VS. SIM)
+    Control Plane: BNSF Trust-Link (PKI Service)
+		Real-World: HashiCorp Vault / Venafi / Microsoft ADCS
+		Sim Tech: Go REST API (using crypto/x509)
+		Features:
+			- Root Key Management: Securely holds the BNSF Root Private Key.
+			- Issue Endpoint: Signs CSRs for Locomotives and Stations on the fly.
+			- Revocation Logic: Generates CRLs (Certificate Revocation Lists).
+			- Discovery: Provides the Public CA Bundle for Kong/mTLS validation.
+        Platform Security: mTLS Protocol
+            - Trust Anchor: Central Go-based Root CA.
+            - Server Identity: Kong Gateway uses a CA-signed 'Server' cert.
+            - Client Identity: Each Train/Station uses a CA-signed 'Client' cert.
+            - Validation: Kong is configured to REJECT any connection not signed by the BNSF Root CA.
+            - Staff Focus: Certificate Revocation (CRL) - if a Train is "decommissioned," we revoke the cert so it can no longer hit the API.
+	Edge/IoT: Locomotive (The Asset)
+		Real-World: I-ETMS / TMC (Train Management Computer)
+		Sim Tech: Dockerized Go Service per Locomotive
+		Features: 
+			- State Engine: Physics-based (Speed/Throttle/Air-Brake curves).
+			- Networking Modes:
+				1. Modern: Direct mTLS + HTTP/2 to Cloud API Gateway (Kong).
+				2. Legacy: Plain MQTT to Local Railway Station.
+			- C&C: RabbitMQ consumer for "Mandatory Directives" (Dispatcher).
+
+	Edge/IoT: Railway Station (The Secure Edge Gateway)
+		Real-World: Wayside Interface Unit (WIU) / Field Hub
+		Sim Tech: Mosquitto + Go-based "Protocol Mediator"
+		Features: 
+			- Ingress: Accepts local MQTT/Radio traffic from legacy assets.
+			- Security: Upgrades "insecure" local traffic to mTLS.
+			- Egress: Forwards all traffic to Kong API Gateway (Unified Ingress).
+			- Range Sim: Drops MQTT packets based on Train GPS distance.
+	Command & Control (Train Routing/Directives)
+		Real-World: AMQP / Interoperable Rail Messaging
+		Sim Tech: RabbitMQ
+	Telemetry Bus (Event Streaming)
+		Real-World: Multi-cluster Confluent Kafka
+		Sim Tech: Kafka (KRaft mode / Docker)
+	API Management (Security/Platform Gateway)
+		Real-World: Kong / Apigee
+		Sim Tech: Kong Gateway (OSS)
+	Backend Core (Business Logic/Scheduling)
+		Real-World: Spring Boot (Java)
+		Sim Tech: Spring Boot 3.x
+	High-Performance API (Microservices)
+		Real-World: Node.js / Go
+		Sim Tech: Node.js (Express/Fastify)
+	Serverless (Event-Driven Edge Logic)
+		Real-World: AWS Lambda / OpenShift Serverless
+		Sim Tech: LocalStack or OpenFaaS
+	Storage: SQL (Manifests/HR)
+		Real-World: Oracle / PostgreSQL
+		Sim Tech: PostgreSQL 16
+	Storage: NoSQL (Logs/Sensor Documents)
+		Real-World: MongoDB / Elastic
+		Sim Tech: MongoDB
+	Storage: Graph (Track Topology)
+		Real-World: Neo4j
+		Sim Tech: Neo4j (Community Edition)
+	Caching (Real-time GIS/Tracking)
+		Real-World: Redis / Memcached
+		Sim Tech: Redis Stack
+	Observability (Platform Health)
+		Real-World: Prometheus, Grafana, OpenTelemetry, Splunk
+		Sim Tech: Prometheus, Grafana, Otel Collector
+	Frontend (Single Pane of Glass)
+		Real-World: React / Angular
+		Sim Tech: React + Tailwind CSS
+	DevOps/Infra (The Container Engine)
+		Real-World: Red Hat OpenShift
+		Sim Tech: WSL2 + Docker Desktop (K3s/Helm)
+
+THE BUILD ORDER (SPRINTS)
+	Phase 1: The Foundation (Infrastructure-as-Code)
+		Goal: Environment stability on i9-14900K.
+		Tasks: .wslconfig optimization, Docker Compose/Helm setup.
+		Staff Focus: Resource isolation and cluster health checks.
+	Phase 2: The Edge & Ingress (Data Inbound)
+		Goal: Simulate telemetry and command traffic.
+		Tasks: Go Simulator (Producers) + Kong (Gateway config).
+		Staff Focus: mTLS, Rate Limiting, and Payload Validation.
+	Phase 3: The Polyglot Brain (Processing & Storage)
+		Goal: Data persistence and transformation.
+		Tasks: Spring Boot Consumer + Neo4j Graph + Postgres ACID transactions.
+		Staff Focus: Eventual consistency vs. ACID trade-offs.
+	Phase 4: The SPOG & Observability (Visibility)
+		Goal: Real-time monitoring dashboard.
+		Tasks: React UI + Prometheus/Grafana integration.
+		Staff Focus: Defining "Golden Signals" (Latency, Errors, Traffic, Saturation).
+	Phase 5: The "Monkey" (Chaos Engineering)
+		Goal: Prove reliability.
+		Tasks: Node failure simulation, Network partition tests.
+		Staff Focus: Disaster Recovery (DR) and High Availability (HA) strategies.
+
+HARDWARE OPTIMIZATION (i9-14900K / 64GB)
+	Memory: Allocate 32GB-40GB to WSL2 via .wslconfig.
+	Processor: Leverage 24 cores (8P + 16E) for parallel container orchestration.
+	Storage: Use M.2 NVMe mounts for Kafka/Postgres volumes to prevent I/O wait.
+	GPU: RTX 3090 reserved for potential local LLM/ML prediction sim (Veo/Object detection).

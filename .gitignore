@@ -1,0 +1,5 @@
+# ignore any bin directory
+bin/
+
+# ignore the ca_data directory which contains the runtime cert info
+pki/ca_data

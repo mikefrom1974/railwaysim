@@ -1,0 +1,4 @@
+built CA PKI
+    checks for existing root CA, generates if missing
+    clients must have a valid token to get a cert (reality = TPM, etc)
+
