@@ -17,10 +17,8 @@
 * ENSURE YOU ARE IN THE pki FOLDER
     * Git commit and push branch
     * Merge in github
-    * Switch back to main, pull, tag with version matching Changelog
-        * ```git tag v<version>```
-        * ```git push origin v<version>```
-        * Make release in github
+    * Switch back to main, pull
+        * We will not be tagging / releasing since this is a monorepo
     * Build docker image (see command in Dockerfile)
         * Test container if needed
         * ```docker run -d --restart=always -p 8080:8080 -e ISSUETOKEN=dev -e ADMINTOKEN=dev pki:<version>```
