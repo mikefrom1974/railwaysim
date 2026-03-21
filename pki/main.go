@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -21,16 +22,19 @@ const (
 )
 
 var (
-	Version = "development" // set at build time with -ldflags "-X main.Version=1.0.0"
-
-	certAuth    *CA
-	issueToken  = os.Getenv("PKIISSUETOKEN")
-	adminToken  = os.Getenv("PKIADMINTOKEN")
+	Version     = "development" // set at build time with -ldflags "-X main.Version=1.0.0"
 	Environment = os.Getenv("ENVIRONMENT")
+
+	certAuth   *CA
+	issueToken = os.Getenv("PKIISSUETOKEN")
+	adminToken = os.Getenv("PKIADMINTOKEN")
 )
 
 func main() {
-	fmt.Printf("Starting CA REST server (version: %s)", Version)
+	log.Printf("Starting CA REST server (version: %s)\n", Version)
+	if Environment == "" {
+		Environment = "DEV"
+	}
 
 	// check if the issue token is set
 	if issueToken == "" {
@@ -43,7 +47,7 @@ func main() {
 	}
 
 	// load CA from disk or initialize a new one
-	if ca, err := initCA(); err != nil {
+	if ca, err := initCA(false); err != nil {
 		log.Fatalf("Failed to initialize CA: %v", err)
 	} else {
 		certAuth = ca
@@ -55,7 +59,6 @@ func main() {
 	}
 
 	// start the HTTP server
-	fmt.Println("HTTP server listening on :8080")
 	startHTTPServer()
 }
 
@@ -65,7 +68,7 @@ func startHTTPServer() {
 		versionInfo := fmt.Sprintf("PKI version: %s (%s environment)", Version, Environment)
 		w.WriteHeader(http.StatusOK)
 		if _, e := w.Write([]byte(versionInfo)); e != nil {
-			log.Printf("Failed to write health check response: %v", e)
+			log.Printf("Failed to write health check response: %v\n", e)
 		}
 	})
 
@@ -80,6 +83,32 @@ func startHTTPServer() {
 
 	// handler for getting CRL
 	http.HandleFunc("/crl", handleGetCRL)
+
+	// handler for wiping CA and all certs (for testing purposes)
+	http.HandleFunc("/wipe", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			http.Error(w, "Method not allowed (DELETE required)", http.StatusMethodNotAllowed)
+			return
+		}
+		token := r.Header.Get("X-Auth-Token")
+		if token == "" || token != adminToken {
+			log.Printf("Unauthorized access attempt to wipe CA: missing/invalid token from: %s\n", r.RemoteAddr)
+			http.Error(w, "Unauthorized: missing or invalid token", http.StatusUnauthorized)
+			return
+		}
+		if ca, e := initCA(true); e != nil {
+			http.Error(w, "Failed to wipe CA: "+e.Error(), http.StatusInternalServerError)
+			return
+		} else {
+			certAuth = ca
+			log.Printf("Successfully wiped CA from %s\n", r.RemoteAddr)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		if _, e := w.Write([]byte("CA wiped successfully")); e != nil {
+			log.Printf("Failed to write response: %v", e)
+		}
+	})
 
 	// start the server
 	if e := http.ListenAndServe(apiPort, nil); e != nil {
@@ -96,17 +125,20 @@ func handleIssueCert(w http.ResponseWriter, r *http.Request) {
 	// authenticate the request (for simplicity, we just check for a header)
 	token := r.Header.Get("X-Auth-Token")
 	if token == "" || token != issueToken {
-		log.Printf("Unauthorized access attempt, missing/invalid token from: %s", r.RemoteAddr)
+		log.Printf("Unauthorized access attempt to issue cert: missing/invalid token from: %s\n", r.RemoteAddr)
 		http.Error(w, "Unauthorized: missing or invalid token", http.StatusUnauthorized)
 		return
 	}
 
 	// read the CSR from the request body
-	csrBytes := make([]byte, r.ContentLength)
-	if _, err := r.Body.Read(csrBytes); err != nil {
-		http.Error(w, "Failed to read CSR: "+err.Error(), http.StatusBadRequest)
+	var csrBytes []byte
+	if cb, e := io.ReadAll(r.Body); e != nil {
+		http.Error(w, "Failed to read CSR: "+e.Error(), http.StatusBadRequest)
 		return
+	} else {
+		csrBytes = cb
 	}
+	defer r.Body.Close()
 
 	// get the signed certificate from the CA
 	isServer := r.Header.Get("X-Cert-Type") == "server"
@@ -121,7 +153,7 @@ func handleIssueCert(w http.ResponseWriter, r *http.Request) {
 	// return the signed certificate in the response
 	w.Header().Set("Content-Type", "application/x-pem-file")
 	if _, e := w.Write(signedCert); e != nil {
-		log.Printf("Failed to write response: %v", e)
+		log.Printf("Failed to write response: %v\n", e)
 		return
 	}
 
@@ -137,7 +169,7 @@ func handleGetCACert(w http.ResponseWriter, r *http.Request) {
 	caCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certAuth.RootCert.Raw})
 	w.Header().Set("Content-Type", "application/x-pem-file")
 	if _, e := w.Write(caCertPEM); e != nil {
-		log.Printf("Failed to write response: %v", e)
+		log.Printf("Failed to write response: %v\n", e)
 		return
 	}
 }
@@ -151,7 +183,7 @@ func handleRevokeCert(w http.ResponseWriter, r *http.Request) {
 	// authenticate the request (for simplicity, we just check for a header)
 	token := r.Header.Get("X-Auth-Token")
 	if token == "" || token != adminToken {
-		log.Printf("Unauthorized access attempt to revoke cert, missing/invalid token from: %s", r.RemoteAddr)
+		log.Printf("Unauthorized access attempt to revoke cert: missing/invalid token from: %s\n", r.RemoteAddr)
 		http.Error(w, "Unauthorized: missing or invalid token", http.StatusUnauthorized)
 		return
 	}
@@ -173,14 +205,14 @@ func handleRevokeCert(w http.ResponseWriter, r *http.Request) {
 
 	// revoke the cert
 	if e := certAuth.RevokeCert(serial); e != nil {
-		log.Printf("Failed to revoke cert: %s", e.Error())
+		log.Printf("Failed to revoke cert: %s\n", e.Error())
 		return
 	}
 
 	// return success
 	w.WriteHeader(http.StatusOK)
 	if _, e := w.Write([]byte("Certificate revoked successfully")); e != nil {
-		log.Printf("Failed to write response: %v", e)
+		log.Printf("Failed to write response: %v\n", e)
 	}
 }
 
@@ -196,7 +228,7 @@ func handleGetCRL(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Header().Set("Content-Type", "application/x-pem-file")
 		if _, e := w.Write(crlPEM); e != nil {
-			log.Printf("Failed to write response: %v", e)
+			log.Printf("Failed to write response: %v\n", e)
 			return
 		}
 	}

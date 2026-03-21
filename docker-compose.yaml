@@ -6,11 +6,11 @@ services:
     ports:
       - "8100:8080"
     environment:
-      - PKIADMINTOKEN="${PKIADMINTOKENSTAGING:-}" # set from env variable or default to empty
-      - PKIISSUETOKEN="${PKIISSUETOKENSTAGING:-}" # set from env variable or default to empty
+      - PKIADMINTOKEN=${PKIADMINTOKENSTAGING:-} # set from env variable or default to empty
+      - PKIISSUETOKEN=${PKIISSUETOKENSTAGING:-} # set from env variable or default to empty
       - ENVIRONMENT=STAGING
     volumes:
-      - pki_data:/app/ca_data # persist CA data
+      - pki_staging_data:/app/ca_data # persist CA data
 
   pki-prod:
     image: pki:0.1.0
@@ -19,11 +19,36 @@ services:
     ports:
       - "8200:8080"
     environment:
-      - PKIADMINTOKEN="${PKIADMINTOKENPROD:-}" # set from env variable or default to empty
-      - PKIISSUETOKEN="${PKIISSUETOKENPROD:-}"
+      - PKIADMINTOKEN=${PKIADMINTOKENPROD:-} # set from env variable or default to empty
+      - PKIISSUETOKEN=${PKIISSUETOKENPROD:-}
       - ENVIRONMENT=PROD
     volumes:
-      - pki_data:/app/ca_data # persist CA data
+      - pki_prod_data:/app/ca_data # persist CA data
+  
+  trains-staging:
+    image: trains:0.1.0
+    container_name: trains-staging
+    restart: always
+    ports:
+      - "8101:8080"
+    environment:
+      - PKIISSUETOKEN=${PKIISSUETOKENSTAGING:-} # set from env variable or default to empty
+      - ENVIRONMENT=STAGING
+    depends_on:
+      - pki-staging
+
+  trains-prod:
+    image: trains:0.1.0
+    container_name: trains-prod
+    restart: always
+    ports:
+      - "8201:8080"
+    environment:
+      - PKIISSUETOKEN=${PKIISSUETOKENPROD:-} # set from env variable or default to empty
+      - ENVIRONMENT=PROD
+    depends_on:
+      - pki-prod
 
 volumes:
-  pki_data:
+  pki_staging_data:
+  pki_prod_data:

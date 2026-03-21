@@ -68,9 +68,23 @@ func (c *CA) SignCSR(csrBytes []byte, isServer bool) ([]byte, error) {
 }
 
 // initCA loads the CA from disk if it exists, or creates a new CA and saves it to disk
-func initCA() (*CA, error) {
+func initCA(wipe bool) (*CA, error) {
 	keyPath := filepath.Join(storageLocation, keyFile)
 	certPath := filepath.Join(storageLocation, certFile)
+
+	// if wipe is true, delete existing CA files
+	if wipe {
+		if fileExists(keyPath) {
+			if e := os.Remove(keyPath); e != nil {
+				return nil, e
+			}
+		}
+		if fileExists(certPath) {
+			if e := os.Remove(certPath); e != nil {
+				return nil, e
+			}
+		}
+	}
 
 	// check if CA key and cert already exist
 	if fileExists(keyPath) && fileExists(certPath) {

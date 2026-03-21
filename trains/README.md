@@ -1,14 +1,12 @@
-## This container will run a CA engine and REST API for managing PKI for the railway sim
+## This container will run an API to spaun simulated trains.
 
 ### Exposed ports:
 * 8080 - REST API for issuing new certs / downloading CA cert
 
 ### Endpoints:
 * /health # GET - shows version and environment
-* /issue  # POST - ask for a new certificate, must have X-Auth-Token header
-* /ca     # GET - retrieve the CA cert
-* /revoke # POST - revoke the certificate (?serial=<cert_serial>)
-* /crl    # GET - retrieve Certificate Revokation List
+* /spawn  # POST - spawns a new train goroutine
+* /count  # GET - returns a count of currently running trains
 
 ### Contribute:
 * Make branch 
@@ -16,17 +14,16 @@
 * Update version (Changelog below, Dockerfile)
 * Test locally
     * ```export PKIISSUETOKEN="dev"```
-    * ```export PKIADMINTOKEN="dev"```
-    * ```go run *.go"```
+    * ```go run *.go```
     * Test http://localhost:8080/health etc
-* ENSURE YOU ARE IN THE *pki* FOLDER
+* ENSURE YOU ARE IN THE *trains* FOLDER
     * Git commit and push branch
     * Merge in github
     * Switch back to main, pull
         * We will not be tagging / releasing since this is a monorepo
     * Build docker image (see command in Dockerfile)
         * test container if necessary (watch for port conflicts)
-        * ```docker run -d --restart=always -p 8080:8080 -e PKIISSUETOKEN=dev -e PKIADMINTOKEN=dev pki:<version>```
+        * ```docker run -d --restart=always -p 8080:8080 trains:<version>```
         * If needed, wipe unneeded / conflicting containers
             * ```docker ps -a```
             * ```docker stop <container id or name>```
@@ -41,4 +38,4 @@
 
 ### Changelog (Semantic Versioning):
 **v0.1.0**
-* *Created*: Initial Development (getting PKI running)
+* *Created*: Initial Development (getting simple trains running)
