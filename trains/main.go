@@ -42,8 +42,8 @@ func startHTTPServer() {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		versionInfo := fmt.Sprintf("Train API version: %s (%s environment)", Version, Environment)
 		w.WriteHeader(http.StatusOK)
-		if _, e := w.Write([]byte(versionInfo)); e != nil {
-			log.Printf("Failed to write health check response: %v\n", e)
+		if _, err := w.Write([]byte(versionInfo)); err != nil {
+			log.Printf("Failed to write health check response: %v\n", err)
 		}
 	})
 
@@ -51,13 +51,13 @@ func startHTTPServer() {
 
 	http.HandleFunc("/count", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		if _, e := w.Write([]byte(fmt.Sprintf("Train count: %d", trainCount))); e != nil {
-			log.Printf("Failed to write health check response: %v\n", e)
+		if _, err := w.Write([]byte(fmt.Sprintf("Train count: %d", trainCount))); err != nil {
+			log.Printf("Failed to write health check response: %v\n", err)
 		}
 	})
 
-	if e := http.ListenAndServe(apiPort, nil); e != nil {
-		log.Fatalf("Failed to start HTTP server: %v", e)
+	if err := http.ListenAndServe(apiPort, nil); err != nil {
+		log.Fatalf("Failed to start HTTP server: %v", err)
 	}
 }
 
@@ -69,12 +69,10 @@ func handleSpawnTrain(w http.ResponseWriter, r *http.Request) {
 		countParam = "1"
 	}
 
-	var numTrains int
-	if n, e := strconv.Atoi(countParam); e != nil {
+	numTrains, err := strconv.Atoi(countParam)
+	if err != nil {
 		http.Error(w, "Invalid count parameter", http.StatusBadRequest)
 		return
-	} else {
-		numTrains = n
 	}
 
 	for i := 0; i < numTrains; i++ {
@@ -84,8 +82,8 @@ func handleSpawnTrain(w http.ResponseWriter, r *http.Request) {
 		cargoWeight := rand.Float64() * 1000.0 // up to 1000 tons of cargo
 		go trainRoutine(trainID, cargoWeight)
 		trainCount += 1
-		if _, e := w.Write([]byte("Train spawned with ID: " + fmt.Sprintf("%d\n", trainID))); e != nil {
-			log.Printf("Failed to write response: %v\n", e)
+		if _, err := w.Write([]byte("Train spawned with ID: " + fmt.Sprintf("%d\n", trainID))); err != nil {
+			log.Printf("Failed to write response: %v\n", err)
 		}
 	}
 }

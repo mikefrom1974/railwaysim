@@ -61,8 +61,8 @@ func trainRoutine(id int, cargoWeight float64) {
 	train.Status = "stopped"
 
 	// register with the PKI to get a cert for secure communication
-	if e := train.registerWithPKI(); e != nil {
-		log.Printf("Train %d failed to register with PKI: %v\n", train.ID, e)
+	if err := train.registerWithPKI(); err != nil {
+		log.Printf("Train %d failed to register with PKI: %v\n", train.ID, err)
 	}
 
 	// Simulate train behavior.
@@ -99,8 +99,8 @@ func trainRoutine(id int, cargoWeight float64) {
 		train.Position += (train.Speed / 3600.0) // Convert km/h to km/s
 
 		// Simulate telemetry reporting.
-		if e := train.sendTelemetry(); e != nil {
-			log.Printf("Train %d failed to send telemetry: %v\n", train.ID, e)
+		if err := train.sendTelemetry(); err != nil {
+			log.Printf("Train %d failed to send telemetry: %v\n", train.ID, err)
 		}
 
 		// Receive commands from the control system.
@@ -120,8 +120,8 @@ func (train *Train) sendTelemetry() error {
 		Status:    train.Status,
 	}
 	var telmString string
-	if b, e := json.MarshalIndent(telemetry, "", " "); e != nil {
-		return fmt.Errorf("failed to marshal telemetry: %v", e)
+	if b, err := json.MarshalIndent(telemetry, "", " "); err != nil {
+		return fmt.Errorf("failed to marshal telemetry: %v", err)
 	} else {
 		telmString = string(b)
 	}
@@ -151,16 +151,16 @@ func (train *Train) registerWithPKI() error {
 
 	// generate the train's private key and CSR
 	var csrBytes []byte
-	if pk, e := rsa.GenerateKey(rand.Reader, 4096); e != nil {
-		return fmt.Errorf("failed to generate private key: %v", e)
+	if pk, err := rsa.GenerateKey(rand.Reader, 4096); err != nil {
+		return fmt.Errorf("failed to generate private key: %v", err)
 	} else {
 		template := &x509.CertificateRequest{
 			Subject: pkix.Name{
 				CommonName: fmt.Sprintf("train-%d", train.ID),
 			},
 		}
-		if cb, e := x509.CreateCertificateRequest(rand.Reader, template, pk); e != nil {
-			return fmt.Errorf("failed to create CSR: %v", e)
+		if cb, err := x509.CreateCertificateRequest(rand.Reader, template, pk); err != nil {
+			return fmt.Errorf("failed to create CSR: %v", err)
 		} else {
 			csrBytes = cb
 			train.PrivateKey = string(pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(pk)}))
@@ -168,46 +168,41 @@ func (train *Train) registerWithPKI() error {
 	}
 
 	// call the PKI API to request a certificate for this train
-	var req *http.Request
-	if r, e := http.NewRequest(http.MethodPost, endpoint+"/issue", bytes.NewReader(csrBytes)); e != nil {
-		return fmt.Errorf("failed to create CSR HTTP request: %v", e)
-	} else {
-		req = r
+	req, err := http.NewRequest(http.MethodPost, endpoint+"/issue", bytes.NewReader(csrBytes))
+	if err != nil {
+		return fmt.Errorf("failed to create CSR HTTP request: %v", err)
 	}
 	req.Header.Set("X-Auth-Token", issueToken)
 	req.Header.Set("X-Cert-Type", "client")
 	req.Header.Set("Content-Type", "application/application/octet-stream")
 
 	client := &http.Client{Timeout: 10 * time.Second}
-	var resp *http.Response
-	if r, e := client.Do(req); e != nil {
-		return fmt.Errorf("failed to send CSR HTTP request: %v", e)
-	} else {
-		resp = r
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send CSR HTTP request: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		respString := ""
-		if b, e := io.ReadAll(resp.Body); e == nil {
+		if b, err := io.ReadAll(resp.Body); err == nil {
 			respString = string(b)
 		}
 		return fmt.Errorf("PKI server returned non-OK status: %s\nResponse: %s", resp.Status, respString)
 	}
 
-	var certBytes []byte
-	if cb, e := io.ReadAll(resp.Body); e != nil {
-		return fmt.Errorf("failed to read certificate from PKI response: %v", e)
+	certBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read certificate from PKI response: %v", err)
 	} else {
-		certBytes = cb
 		// Extract the serial number from the certificate
 		block, _ := pem.Decode(certBytes)
 		if block == nil {
 			return fmt.Errorf("failed to decode certificate PEM")
 		} else {
-			cert, e := x509.ParseCertificate(block.Bytes)
-			if e != nil {
-				return fmt.Errorf("failed to parse certificate: %v", e)
+			cert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return fmt.Errorf("failed to parse certificate: %v", err)
 			}
 			train.CertSerial = cert.SerialNumber.String()
 		}

@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const (
+var (
 	storageLocation  = "./ca_data"
 	keyFile          = "rootCA.key"
 	certFile         = "rootCA.crt"
@@ -29,11 +29,9 @@ type CA struct {
 // SignCSR takes a raw CSR and returns a signed cert
 func (c *CA) SignCSR(csrBytes []byte, isServer bool) ([]byte, error) {
 	// parse the CSR
-	var csr *x509.CertificateRequest
-	if r, e := x509.ParseCertificateRequest(csrBytes); e != nil {
-		return nil, e
-	} else {
-		csr = r
+	csr, err := x509.ParseCertificateRequest(csrBytes)
+	if err != nil {
+		return nil, err
 	}
 
 	// validate the CSR
@@ -57,17 +55,17 @@ func (c *CA) SignCSR(csrBytes []byte, isServer bool) ([]byte, error) {
 	}
 
 	// sign the cert and return it in PEM format ([]byte)
-	var certBytes []byte
-	if cb, e := x509.CreateCertificate(rand.Reader, template, c.RootCert, csr.PublicKey, c.RootKey); e != nil {
-		return nil, e
-	} else {
-		certBytes = cb
+	certBytes, err := x509.CreateCertificate(rand.Reader, template, c.RootCert, csr.PublicKey, c.RootKey)
+	if err != nil {
+		return nil, err
 	}
 
 	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes}), nil
 }
 
-// initCA loads the CA from disk if it exists, or creates a new CA and saves it to disk
+// initCA loads the CA from disk if it exists, or creates a new CA and saves it to disk.
+//
+//	If wipe is true, it will delete any existing CA files and create a new CA
 func initCA(wipe bool) (*CA, error) {
 	keyPath := filepath.Join(storageLocation, keyFile)
 	certPath := filepath.Join(storageLocation, certFile)
@@ -75,13 +73,13 @@ func initCA(wipe bool) (*CA, error) {
 	// if wipe is true, delete existing CA files
 	if wipe {
 		if fileExists(keyPath) {
-			if e := os.Remove(keyPath); e != nil {
-				return nil, e
+			if err := os.Remove(keyPath); err != nil {
+				return nil, err
 			}
 		}
 		if fileExists(certPath) {
-			if e := os.Remove(certPath); e != nil {
-				return nil, e
+			if err := os.Remove(certPath); err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -93,11 +91,9 @@ func initCA(wipe bool) (*CA, error) {
 	}
 
 	// create new CA
-	var privKey *rsa.PrivateKey
-	if pk, e := rsa.GenerateKey(rand.Reader, 4096); e != nil {
-		return nil, e
-	} else {
-		privKey = pk
+	privKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return nil, err
 	}
 
 	template := &x509.Certificate{
@@ -117,24 +113,20 @@ func initCA(wipe bool) (*CA, error) {
 	}
 
 	// self-sign the CA cert
-	var certBytes []byte
-	if cb, e := x509.CreateCertificate(rand.Reader, template, template, &privKey.PublicKey, privKey); e != nil {
-		return nil, e
-	} else {
-		certBytes = cb
+	certBytes, err := x509.CreateCertificate(rand.Reader, template, template, &privKey.PublicKey, privKey)
+	if err != nil {
+		return nil, err
 	}
 
 	// save the CA key and cert to disk
-	if e := saveCA(keyPath, certPath, privKey, certBytes); e != nil {
-		return nil, e
+	if err := saveCA(keyPath, certPath, privKey, certBytes); err != nil {
+		return nil, err
 	}
 
 	// return the CA struct
-	var rootCert *x509.Certificate
-	if rc, e := x509.ParseCertificate(certBytes); e != nil {
-		return nil, e
-	} else {
-		rootCert = rc
+	rootCert, err := x509.ParseCertificate(certBytes)
+	if err != nil {
+		return nil, err
 	}
 
 	return &CA{RootCert: rootCert, RootKey: privKey}, nil
@@ -142,7 +134,7 @@ func initCA(wipe bool) (*CA, error) {
 
 // fileExists checks if a file exists at the given path
 func fileExists(path string) bool {
-	if _, e := os.Stat(path); e == nil {
+	if _, err := os.Stat(path); err == nil {
 		return true
 	}
 	return false
@@ -150,32 +142,25 @@ func fileExists(path string) bool {
 
 // loadCA loads the CA key and cert from disk
 func loadCA(keyPath, certPath string) (*CA, error) {
-	var keyPEM, certPEM []byte
-	if kp, e := os.ReadFile(keyPath); e != nil {
-		return nil, e
-	} else {
-		keyPEM = kp
+	keyPEM, err := os.ReadFile(keyPath)
+	if err != nil {
+		return nil, err
 	}
-	if cp, e := os.ReadFile(certPath); e != nil {
-		return nil, e
-	} else {
-		certPEM = cp
+	certPEM, err := os.ReadFile(certPath)
+	if err != nil {
+		return nil, err
 	}
 
 	keyBlock, _ := pem.Decode(keyPEM)
-	var privKey *rsa.PrivateKey
-	if pk, e := x509.ParsePKCS1PrivateKey(keyBlock.Bytes); e != nil {
-		return nil, e
-	} else {
-		privKey = pk
+	privKey, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
+	if err != nil {
+		return nil, err
 	}
 
 	certBlock, _ := pem.Decode(certPEM)
-	var cert *x509.Certificate
-	if c, e := x509.ParseCertificate(certBlock.Bytes); e != nil {
-		return nil, e
-	} else {
-		cert = c
+	cert, err := x509.ParseCertificate(certBlock.Bytes)
+	if err != nil {
+		return nil, err
 	}
 
 	return &CA{RootCert: cert, RootKey: privKey}, nil
@@ -184,33 +169,33 @@ func loadCA(keyPath, certPath string) (*CA, error) {
 // saveCA saves the CA key and cert to disk
 func saveCA(keyPath, certPath string, key *rsa.PrivateKey, cert []byte) error {
 	// ensure storage directory exists
-	if e := os.MkdirAll(storageLocation, 0700); e != nil {
-		return e
+	if err := os.MkdirAll(storageLocation, 0700); err != nil {
+		return err
 	}
 
 	// save key
-	if keyOut, e := os.Create(keyPath); e != nil {
-		return e
+	if keyOut, err := os.Create(keyPath); err != nil {
+		return err
 	} else {
 		defer keyOut.Close()
-		if e = pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}); e != nil {
-			return e
+		if err := pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}); err != nil {
+			return err
 		}
-		if e = os.Chmod(keyPath, 0600); e != nil {
-			return e
+		if err := os.Chmod(keyPath, 0600); err != nil {
+			return err
 		}
 	}
 
 	// save cert
-	if certOut, e := os.Create(certPath); e != nil {
-		return e
+	if certOut, err := os.Create(certPath); err != nil {
+		return err
 	} else {
 		defer certOut.Close()
-		if e = pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: cert}); e != nil {
-			return e
+		if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: cert}); err != nil {
+			return err
 		}
-		if e = os.Chmod(certPath, 0644); e != nil {
-			return e
+		if err := os.Chmod(certPath, 0644); err != nil {
+			return err
 		}
 	}
 
@@ -220,8 +205,8 @@ func saveCA(keyPath, certPath string, key *rsa.PrivateKey, cert []byte) error {
 // saveRevokedCerts saves the revoked certs map to disk as JSON
 func (c *CA) saveRevokedCerts() error {
 	path := filepath.Join(storageLocation, RevokedCertsFile)
-	if d, e := json.Marshal(c.RevokedCerts); e != nil {
-		return e
+	if d, err := json.Marshal(c.RevokedCerts); err != nil {
+		return err
 	} else {
 		return os.WriteFile(path, d, 0644)
 	}
@@ -237,8 +222,8 @@ func (c *CA) loadRevokedCerts() error {
 	}
 
 	// load our json file into the map
-	if d, e := os.ReadFile(path); e != nil {
-		return e
+	if d, err := os.ReadFile(path); err != nil {
+		return err
 	} else {
 		return json.Unmarshal(d, &c.RevokedCerts)
 	}
@@ -269,11 +254,9 @@ func (c *CA) GenerateCRL() ([]byte, error) {
 		RevokedCertificates: revokedCerts,
 	}
 
-	var crlBytes []byte
-	if cb, e := x509.CreateRevocationList(rand.Reader, template, c.RootCert, c.RootKey); e != nil {
-		return nil, e
-	} else {
-		crlBytes = cb
+	crlBytes, err := x509.CreateRevocationList(rand.Reader, template, c.RootCert, c.RootKey)
+	if err != nil {
+		return nil, err
 	}
 
 	return pem.EncodeToMemory(&pem.Block{Type: "X509 CRL", Bytes: crlBytes}), nil

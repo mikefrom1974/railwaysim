@@ -54,8 +54,8 @@ func main() {
 	}
 
 	// load revoked certs from disk (or initialize empty map if file doesn't exist)
-	if e := certAuth.loadRevokedCerts(); e != nil {
-		log.Fatalf("Failed to load revoked certs: %v", e)
+	if err := certAuth.loadRevokedCerts(); err != nil {
+		log.Fatalf("Failed to load revoked certs: %v", err)
 	}
 
 	// start the HTTP server
@@ -67,8 +67,8 @@ func startHTTPServer() {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		versionInfo := fmt.Sprintf("PKI version: %s (%s environment)", Version, Environment)
 		w.WriteHeader(http.StatusOK)
-		if _, e := w.Write([]byte(versionInfo)); e != nil {
-			log.Printf("Failed to write health check response: %v\n", e)
+		if _, err := w.Write([]byte(versionInfo)); err != nil {
+			log.Printf("Failed to write health check response: %v\n", err)
 		}
 	})
 
@@ -96,8 +96,8 @@ func startHTTPServer() {
 			http.Error(w, "Unauthorized: missing or invalid token", http.StatusUnauthorized)
 			return
 		}
-		if ca, e := initCA(true); e != nil {
-			http.Error(w, "Failed to wipe CA: "+e.Error(), http.StatusInternalServerError)
+		if ca, err := initCA(true); err != nil {
+			http.Error(w, "Failed to wipe CA: "+err.Error(), http.StatusInternalServerError)
 			return
 		} else {
 			certAuth = ca
@@ -105,14 +105,14 @@ func startHTTPServer() {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		if _, e := w.Write([]byte("CA wiped successfully")); e != nil {
-			log.Printf("Failed to write response: %v", e)
+		if _, err := w.Write([]byte("CA wiped successfully")); err != nil {
+			log.Printf("Failed to write response: %v", err)
 		}
 	})
 
 	// start the server
-	if e := http.ListenAndServe(apiPort, nil); e != nil {
-		log.Fatalf("Failed to start HTTP server: %v", e)
+	if err := http.ListenAndServe(apiPort, nil); err != nil {
+		log.Fatalf("Failed to start HTTP server: %v", err)
 	}
 }
 
@@ -131,29 +131,25 @@ func handleIssueCert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// read the CSR from the request body
-	var csrBytes []byte
-	if cb, e := io.ReadAll(r.Body); e != nil {
-		http.Error(w, "Failed to read CSR: "+e.Error(), http.StatusBadRequest)
+	csrBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read CSR: "+err.Error(), http.StatusBadRequest)
 		return
-	} else {
-		csrBytes = cb
 	}
 	defer r.Body.Close()
 
 	// get the signed certificate from the CA
 	isServer := r.Header.Get("X-Cert-Type") == "server"
-	var signedCert []byte
-	if sc, e := certAuth.SignCSR(csrBytes, isServer); e != nil {
-		http.Error(w, "Failed to sign CSR: "+e.Error(), http.StatusInternalServerError)
+	signedCert, err := certAuth.SignCSR(csrBytes, isServer)
+	if err != nil {
+		http.Error(w, "Failed to sign CSR: "+err.Error(), http.StatusInternalServerError)
 		return
-	} else {
-		signedCert = sc
 	}
 
 	// return the signed certificate in the response
 	w.Header().Set("Content-Type", "application/x-pem-file")
-	if _, e := w.Write(signedCert); e != nil {
-		log.Printf("Failed to write response: %v\n", e)
+	if _, err := w.Write(signedCert); err != nil {
+		log.Printf("Failed to write response: %v\n", err)
 		return
 	}
 
@@ -168,8 +164,8 @@ func handleGetCACert(w http.ResponseWriter, r *http.Request) {
 	// return the CA certificate in PEM format
 	caCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certAuth.RootCert.Raw})
 	w.Header().Set("Content-Type", "application/x-pem-file")
-	if _, e := w.Write(caCertPEM); e != nil {
-		log.Printf("Failed to write response: %v\n", e)
+	if _, err := w.Write(caCertPEM); err != nil {
+		log.Printf("Failed to write response: %v\n", err)
 		return
 	}
 }
@@ -190,8 +186,8 @@ func handleRevokeCert(w http.ResponseWriter, r *http.Request) {
 
 	// parse json from request body
 	var revokeReq RevokeRequest
-	if e := json.NewDecoder(r.Body).Decode(&revokeReq); e != nil {
-		http.Error(w, "Failed to parse request body: "+e.Error(), http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&revokeReq); err != nil {
+		http.Error(w, "Failed to parse request body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
@@ -204,15 +200,15 @@ func handleRevokeCert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// revoke the cert
-	if e := certAuth.RevokeCert(serial); e != nil {
-		log.Printf("Failed to revoke cert: %s\n", e.Error())
+	if err := certAuth.RevokeCert(serial); err != nil {
+		log.Printf("Failed to revoke cert: %s\n", err.Error())
 		return
 	}
 
 	// return success
 	w.WriteHeader(http.StatusOK)
-	if _, e := w.Write([]byte("Certificate revoked successfully")); e != nil {
-		log.Printf("Failed to write response: %v\n", e)
+	if _, err := w.Write([]byte("Certificate revoked successfully")); err != nil {
+		log.Printf("Failed to write response: %v\n", err)
 	}
 }
 
@@ -222,13 +218,13 @@ func handleGetCRL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if crlPEM, e := certAuth.GenerateCRL(); e != nil {
-		http.Error(w, "Failed to generate CRL: "+e.Error(), http.StatusInternalServerError)
+	if crlPEM, err := certAuth.GenerateCRL(); err != nil {
+		http.Error(w, "Failed to generate CRL: "+err.Error(), http.StatusInternalServerError)
 		return
 	} else {
 		w.Header().Set("Content-Type", "application/x-pem-file")
-		if _, e := w.Write(crlPEM); e != nil {
-			log.Printf("Failed to write response: %v\n", e)
+		if _, err := w.Write(crlPEM); err != nil {
+			log.Printf("Failed to write response: %v\n", err)
 			return
 		}
 	}
