@@ -5,7 +5,7 @@
 
 ### Endpoints:
 * /health # GET - shows version and environment
-* /spawn  # POST - spawns a new train goroutine
+* /spawn  # POST - spawns a new train goroutine (default one, add ?count=10 for many)
 * /count  # GET - returns a count of currently running trains
 
 ### Contribute:

@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 const (
@@ -62,13 +63,29 @@ func startHTTPServer() {
 
 // handleSpawnTrain will launch a new train goroutine.
 func handleSpawnTrain(w http.ResponseWriter, r *http.Request) {
-	// For simplicity, we'll just spawn a train with a random cargo weight.
-	trainStartID += 1
-	trainID := trainStartID
-	cargoWeight := rand.Float64() * 1000.0 // up to 1000 tons of cargo
-	go trainRoutine(trainID, cargoWeight)
-	trainCount += 1
-	if _, e := w.Write([]byte("Train spawned with ID: " + fmt.Sprintf("%d", trainID))); e != nil {
-		log.Printf("Failed to write response: %v\n", e)
+	// read count parameter from query string (optional)
+	countParam := r.URL.Query().Get("count")
+	if countParam == "" {
+		countParam = "1"
+	}
+
+	var numTrains int
+	if n, e := strconv.Atoi(countParam); e != nil {
+		http.Error(w, "Invalid count parameter", http.StatusBadRequest)
+		return
+	} else {
+		numTrains = n
+	}
+
+	for i := 0; i < numTrains; i++ {
+		// For simplicity, we'll just spawn a train with a random cargo weight.
+		trainStartID += 1
+		trainID := trainStartID
+		cargoWeight := rand.Float64() * 1000.0 // up to 1000 tons of cargo
+		go trainRoutine(trainID, cargoWeight)
+		trainCount += 1
+		if _, e := w.Write([]byte("Train spawned with ID: " + fmt.Sprintf("%d\n", trainID))); e != nil {
+			log.Printf("Failed to write response: %v\n", e)
+		}
 	}
 }
