@@ -1,5 +1,5 @@
-## BNSF Simulator (sorta)
-This project aims to simulate BNSF Railway systems (largely from guesswork; I have no actual 
+## Railway Simulator (sorta)
+This project aims to simulate Railway systems (largely from guesswork; I have no actual 
 experience with them) for the purpose of learning how messaging might work between the trains 
 and the central data centers.
 
@@ -9,7 +9,9 @@ and run ```source ./secrets.sh``` to pull secrets into env vars before deploying
 
 # Deploy
 Ensure you are in the root folder.
-```docker-compose up -d```
+```docker compose up -d```
+(Staging and Prod are labeled as profiles so you can start / stop them individually)
+```docker compose --profile staging up -d```
 
 # Folder structure
 Each service lives in its own folder. Each folder will have its own README.md for usage 
@@ -21,3 +23,4 @@ its own version. There is no versioning for the monorepo as a whole.
 
 # Ports (dev / staging / prod):
 * pki: 8080 / 8100 / 8200
+* trains: 8080 / 8101 / 8201

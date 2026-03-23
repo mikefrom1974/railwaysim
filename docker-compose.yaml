@@ -2,6 +2,8 @@ services:
   pki-staging:
     image: pki:0.1.0
     container_name: pki-staging
+    profiles:
+      - staging
     restart: always
     ports:
       - "8100:8080"
@@ -15,6 +17,8 @@ services:
   pki-prod:
     image: pki:0.1.0
     container_name: pki-prod
+    profiles:
+      - prod
     restart: always
     ports:
       - "8200:8080"
@@ -25,29 +29,77 @@ services:
     volumes:
       - pki_prod_data:/app/ca_data # persist CA data
   
+  rabbit-server-staging:
+    image: rabbit-server:0.1.0
+    container_name: rabbit-server-staging
+    profiles:
+      - staging
+    restart: always
+    ports: 
+      - "8102:5671"
+      - "8103:15672"
+    environment:
+      - PKIISSUETOKEN=${PKIISSUETOKENSTAGING:-} # set from env variable or default to empty
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER:-}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS:-}
+      - RABBITMQ_TRAIN_USER=${RABBITMQ_TRAIN_USER:-}
+      - RABBITMQ_TRAIN_PASS=${RABBITMQ_TRAIN_PASS:-}
+      - ENVIRONMENT=STAGING
+    depends_on:
+      - pki-staging
+
+  rabbit-server-prod:
+    image: rabbit-server:0.1.0
+    container_name: rabbit-server-prod
+    profiles:
+      - prod
+    restart: always
+    ports: 
+      - "8202:5671"
+      - "8203:15672"
+    environment:
+      - PKIISSUETOKEN=${PKIISSUETOKENPROD:-} # set from env variable or default to empty
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER:-}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS:-}
+      - RABBITMQ_TRAIN_USER=${RABBITMQ_TRAIN_USER:-}
+      - RABBITMQ_TRAIN_PASS=${RABBITMQ_TRAIN_PASS:-}
+      - ENVIRONMENT=PROD
+    depends_on:
+      - pki-prod
+
   trains-staging:
     image: trains:0.1.0
     container_name: trains-staging
+    profiles:
+      - staging
     restart: always
     ports:
       - "8101:8080"
     environment:
       - PKIISSUETOKEN=${PKIISSUETOKENSTAGING:-} # set from env variable or default to empty
+      - RABBITMQ_TRAIN_USER=${RABBITMQ_TRAIN_USER:-}
+      - RABBITMQ_TRAIN_PASS=${RABBITMQ_TRAIN_PASS:-}
       - ENVIRONMENT=STAGING
     depends_on:
       - pki-staging
+      - rabbit-server-staging
 
   trains-prod:
     image: trains:0.1.0
     container_name: trains-prod
+    profiles:
+      - prod
     restart: always
     ports:
       - "8201:8080"
     environment:
       - PKIISSUETOKEN=${PKIISSUETOKENPROD:-} # set from env variable or default to empty
+      - RABBITMQ_TRAIN_USER=${RABBITMQ_TRAIN_USER:-}
+      - RABBITMQ_TRAIN_PASS=${RABBITMQ_TRAIN_PASS:-}
       - ENVIRONMENT=PROD
     depends_on:
       - pki-prod
+      - rabbit-server-prod
 
 volumes:
   pki_staging_data:

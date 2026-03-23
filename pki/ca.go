@@ -47,6 +47,10 @@ func (c *CA) SignCSR(csrBytes []byte, isServer bool) ([]byte, error) {
 		NotAfter:     time.Now().Add(365 * 24 * time.Hour), // valid for 1 year
 		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+
+		// copy SANs over
+		DNSNames:    csr.DNSNames,
+		IPAddresses: csr.IPAddresses,
 	}
 
 	// add server auth if needed

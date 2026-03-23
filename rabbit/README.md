@@ -1,29 +1,22 @@
-## This container will run an API to spawn simulated trains.
+## This container will run a rabbitMQ server to act as secure control for the trains
 
 ### Exposed ports:
-* 8080 - REST API for issuing new certs / downloading CA cert
-
-### Endpoints:
-* /health # GET - shows version and environment
-* /spawn  # POST - spawns a new train goroutine (default one, add ?count=10 for many)
-* /count  # GET - returns a count of currently running trains
+* 5672 - Standard AMQP
+* 5671 - AMQP over TLS
+* 15672 - Management UI
 
 ### Contribute:
 * Make branch 
-* Modify .go files as needed.
+* Modify files as needed.
 * Update version (Changelog below, Dockerfile)
 * Test locally
-    * ```export PKIISSUETOKEN="dev"```
-    * ```go run *.go```
-    * Test http://localhost:8080/health etc
-* ENSURE YOU ARE IN THE *trains* FOLDER
+    * Don't. This is set up to be run as a container that registers with the PKI
+* ENSURE YOU ARE IN THE *rabbit* FOLDER
     * Git commit and push branch
     * Merge in github
     * Switch back to main, pull
         * We will not be tagging / releasing since this is a monorepo
     * Build docker image (see command in Dockerfile)
-        * test container if necessary (watch for port conflicts)
-        * ```docker run -d --restart=always -p 8080:8080 trains:<version>```
         * If needed, wipe unneeded / conflicting containers
             * ```docker ps -a```
             * ```docker stop <container id or name>```
@@ -38,4 +31,4 @@
 
 ### Changelog (Semantic Versioning):
 **v0.1.0**
-* *Created*: Initial Development (getting simple trains running)
+* *Created*: Initial Development (getting rabbitMW server running)

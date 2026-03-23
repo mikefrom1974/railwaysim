@@ -2,3 +2,9 @@ built CA PKI
     checks for existing root CA, generates if missing
     clients must have a valid token to get a cert (reality = TPM, etc)
 
+built simulated train
+    spawned via API call
+    registers for its own certificate with issue token
+    sends telemetry every second(ish) 
+    TODO: actually send the telemetry somewhere
+
