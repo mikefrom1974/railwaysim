@@ -8,3 +8,11 @@ built simulated train
     sends telemetry every second(ish) 
     TODO: actually send the telemetry somewhere
 
+built RabbitMQ
+    RabbitMQ pulls server certificate from PKI
+    Trains register with RabbitMQ and subscribe to trains.
+
+built kafka
+    Kafka service pulls server certificate from PKI
+    API gateway will push telemetry data to Kafka.
+    Redis / Prometheus will have telemetry pulled from Kafka. 

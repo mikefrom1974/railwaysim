@@ -1,8 +1,8 @@
-## This container will run a rabbitMQ server to act as secure control for the trains
+## This container will run a Kafka server to act as pub/sub between the API Gateway and services.
 
 ### Exposed ports:
-* 5671 - AMQP over TLS
-* 15672 - Management UI
+* 9092: Broker / Client Communication
+* 9093: Controller Communication
 
 ### Contribute:
 * Make branch 
@@ -10,7 +10,7 @@
 * Update version (Changelog below, Dockerfile)
 * Test locally
     * Don't. This is set up to be run as a container that registers with the PKI
-* ENSURE YOU ARE IN THE *rabbit* FOLDER
+* ENSURE YOU ARE IN THE *kafka* FOLDER
     * Git commit and push branch
     * Merge in github
     * Switch back to main, pull
@@ -30,4 +30,4 @@
 
 ### Changelog (Semantic Versioning):
 **v0.1.0**
-* *Created*: Initial Development (getting rabbitMQ server running)
+* *Created*: Initial Development (getting Kafka server running)

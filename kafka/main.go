@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -22,7 +23,8 @@ const (
 	pkiProdEndpoint    = "http://pki-prod:8080"
 
 	// store the key, certificate, and ca in this folder
-	certFolder = "/etc/rabbitmq/certs"
+	serverName = "kafka-server"
+	certFolder = "/etc/kafka/certs"
 )
 
 var (
@@ -35,25 +37,20 @@ var (
 func main() {
 	// this program will generate a private key and CSR,
 	// send the CSR to the PKI service to get a signed certificate,
-	// and store the private key and certificate in /etc/rabbitmq/certs
+	// and store the private key and certificate in /etc/<server-name>/certs
 
 	// assign endpoint based on environment variable
 	var endpoint string
-	var saName = "rabbit-server-dev"
+	var saName string
 	switch Environment {
 	case "STAGING":
 		endpoint = pkiStagingEndpoint
-		saName = "rabbit-server-staging"
+		saName = fmt.Sprintf("%s-staging", serverName)
 	case "PROD":
 		endpoint = pkiProdEndpoint
-		saName = "rabbit-server-prod"
+		saName = fmt.Sprintf("%s-prod", serverName)
 	default:
 		log.Fatalf("'%s' environment, container will not have a valid cert.\n", Environment)
-	}
-
-	// fail if our user / pass env variables aren't set
-	if os.Getenv("RABBITMQ_DEFAULT_USER") == "" || os.Getenv("RABBITMQ_DEFAULT_PASS") == "" {
-		log.Fatal("RabbitMQ credentials must be set in environment variables")
 	}
 
 	// generate the private key and CSR
@@ -64,7 +61,7 @@ func main() {
 	} else {
 		template := &x509.CertificateRequest{
 			Subject: pkix.Name{
-				CommonName: "rabbitmq-server",
+				CommonName: serverName,
 			},
 			DNSNames: []string{saName},
 		}
@@ -145,7 +142,7 @@ func main() {
 		log.Fatalf("failed to read CA certificate from PKI response: %v", err)
 	}
 
-	// store the private key, certificate, and cs in /etc/rabbitmq/certs
+	// store the private key, certificate, and cs in <certFolder>
 	if err := os.MkdirAll(certFolder, 0755); err != nil {
 		log.Fatalf("failed to create certs directory: %v", err)
 	}

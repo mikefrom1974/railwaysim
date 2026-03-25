@@ -67,6 +67,42 @@ services:
     depends_on:
       - pki-prod
 
+  kafka-server-staging:
+    image: kafka-server:0.1.0
+    container_name: kafka-server-staging
+    profiles:
+      - staging
+    restart: always
+    ports:
+      - "8104:9092"
+      - "8105:9093"
+    environment:
+      - PKIISSUETOKEN=${PKIISSUETOKENSTAGING:-} # set from env variable or default to empty
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka-server-staging:9093
+      - KAFKA_ADVERTISED_LISTENERS=CLIENT://kafka-server-staging:9092
+      - CLUSTER_ID=o0WCJ9l7plmF4HfxsLGC-g
+      - ENVIRONMENT=STAGING
+    depends_on:
+      - pki-staging
+
+  kafka-server-prod:
+    image: kafka-server:0.1.0
+    container_name: kafka-server-prod
+    profiles:
+      - prod
+    restart: always
+    ports:
+      - "8204:9092"
+      - "8205:9093"
+    environment:
+      - PKIISSUETOKEN=${PKIISSUETOKENPROD:-} # set from env variable or default to empty
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka-server-prod:9093
+      - KAFKA_ADVERTISED_LISTENERS=CLIENT://kafka-server-prod:9092
+      - CLUSTER_ID=RQ7C5nXAYSQcL3a_EDmcGg
+      - ENVIRONMENT=PROD
+    depends_on:
+      - pki-prod
+
   trains-staging:
     image: trains:0.1.0
     container_name: trains-staging

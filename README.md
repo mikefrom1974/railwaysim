@@ -20,7 +20,16 @@ versions when updates are needed. Each subfolder will use semantic versioning to
 its own version. There is no versioning for the monorepo as a whole.
 
 * pki > Certificate Authority and REST API for trains to register for certificates.
+* trains > Simulated trains that receive commands from rabbitMQ and send telemetry to API Gateway.
+* rabbit > RabbitMQ server and management UI.
+* kafka > Kafka service for telemetry data.
 
 # Ports (dev / staging / prod):
-* pki: 8080 / 8100 / 8200
-* trains: 8080 / 8101 / 8201
+| container | local | staging | prod |
+| -------- | -------- | -------- | -------- |
+| pki | 8080 | 8100 | 8200 |
+| trains | 8080 | 8101 | 8201 |
+| rabbit-server | 5671 | 8102 | 8202 |
+| rabbit (mgmt) | 15672 | 8103 | 8203 |
+| kafka client | 9092 | 8104 | 8204 |
+| kafka control | 9093 | 8105 | 8205 |

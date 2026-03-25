@@ -18,7 +18,8 @@ type (
 )
 
 const (
-	apiPort = ":8080"
+	apiPort       = ":8080"
+	wipeCAOnStart = true
 )
 
 var (
@@ -47,7 +48,7 @@ func main() {
 	}
 
 	// load CA from disk or initialize a new one
-	if ca, err := initCA(false); err != nil {
+	if ca, err := initCA(wipeCAOnStart); err != nil {
 		log.Fatalf("Failed to initialize CA: %v", err)
 	} else {
 		certAuth = ca
