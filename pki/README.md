@@ -1,6 +1,6 @@
 ## This container will run a CA engine and REST API for managing PKI for the railway sim
 
-### Exposed ports:
+### Container ports:
 * 8080 - REST API for issuing new certs / downloading CA cert
 
 ### Endpoints:

@@ -1,29 +1,21 @@
-## This container will run an API to spawn simulated trains.
+## This container will run a Kong API Gateway server to act as security / throttling.
 
 ### Container ports:
-* 8080 - REST API for spawning trains
-
-### Endpoints:
-* /health # GET - shows version and environment
-* /spawn  # POST - spawns a new train goroutine (default one, add ?count=10 for many)
-* /count  # GET - returns a count of currently running trains
+* 8001: API Gateway endpoint
+* 8443: Kong Admin
 
 ### Contribute:
 * Make branch 
-* Modify .go files as needed.
+* Modify files as needed.
 * Update version (Changelog below, Dockerfile)
 * Test locally
-    * ```export PKIISSUETOKEN="dev"```
-    * ```go run *.go```
-    * Test http://localhost:8080/health etc
-* ENSURE YOU ARE IN THE *trains* FOLDER
+    * Don't. This is set up to be run as a container that registers with the PKI
+* ENSURE YOU ARE IN THE *kafka* FOLDER
     * Git commit and push branch
     * Merge in github
     * Switch back to main, pull
         * We will not be tagging / releasing since this is a monorepo
     * Build docker image (see command in Dockerfile)
-        * test container if necessary (watch for port conflicts)
-        * ```docker run -d --restart=always -p 8080:8080 trains:<version>```
         * If needed, wipe unneeded / conflicting containers
             * ```docker ps -a```
             * ```docker stop <container id or name>```
@@ -36,13 +28,6 @@
         * ```source ./secrets.sh```
         * ```docker-compose up -d```
 
-### Sample RabbitMQ Payloads:
-* {"command":"SET_SPEED", "params_float":[30.0]}
-* {"command":"ENABLE_TELEMETRY"}
-* {"command":"DISABLE_TELEMETRY"}
-* {"command":"EMERGENCY_STOP"}
-
-
 ### Changelog (Semantic Versioning):
 **v0.1.0**
-* *Created*: Initial Development (getting simple trains running)
+* *Created*: Initial Development (getting Kafka server running)

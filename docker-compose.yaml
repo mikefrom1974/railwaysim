@@ -103,6 +103,37 @@ services:
     depends_on:
       - pki-prod
 
+  kong-server-staging:
+    image: kong-server:0.1.0
+    container_name: kong-server-staging
+    profiles:
+      - fff
+    restart: always
+    ports:
+      - "8106:8001"
+      - "8107:8443"
+    environment:
+      - PKIISSUETOKEN=${PKIISSUETOKENSTAGING:-} # set from env variable or default to empty
+      - KAFKA_SERVER_HOST=kafka-server-staging
+      - ENVIRONMENT=STAGING
+  
+  kong-server-prod:
+    image: kong-server:0.1.0
+    container_name: kong-server-prod
+    profiles:
+      - prod
+    restart: always
+    ports:
+      - "8206:8001"
+      - "8207:8443"
+    environment:
+      - PKIISSUETOKEN=${PKIISSUETOKENPROD:-} # set from env variable or default to empty
+      - KAFKA_SERVER_HOST=kafka-server-prod
+      - ENVIRONMENT=PROD
+    depends_on:
+      - pki-prod
+  
+
   trains-staging:
     image: trains:0.1.0
     container_name: trains-staging

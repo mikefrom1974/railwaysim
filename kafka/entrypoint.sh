@@ -10,7 +10,7 @@ openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in /etc/kafka/certs/key.
 # Overwrite the original
 mv /etc/kafka/certs/key.pkcs8.pem /etc/kafka/certs/key.pem
 
-# cat the keys directly to the environment variables
+# cat the keys into a combined keystore
 cat /etc/kafka/certs/key.pem /etc/kafka/certs/cert.pem > /etc/kafka/certs/keystore.pem
 
 # --- KRaft Storage Formatting ---
@@ -31,10 +31,39 @@ export KAFKA_SSL_KEYSTORE_TYPE="PEM"
 export KAFKA_SSL_KEYSTORE_LOCATION="/etc/kafka/certs/keystore.pem"
 export KAFKA_SSL_TRUSTSTORE_TYPE="PEM"
 export KAFKA_SSL_TRUSTSTORE_LOCATION="/etc/kafka/certs/ca.pem"
-export KAFKA_SSL_CLIENT_AUTH="required"
+export KAFKA_SSL_CLIENT_AUTH="requested" # set to required for full mTLS
 
+export PATH=$PATH:/opt/kafka/bin
 
-echo "Kafka environment prepped. Starting Kafka..."
+# Create a client mTLS config (needed for CLI tools)
+cat <<EOF > /tmp/client-ssl.properties
+security.protocol=SSL
+ssl.truststore.type=PEM
+ssl.truststore.location=/etc/kafka/certs/ca.pem
+ssl.keystore.type=PEM
+ssl.keystore.location=/etc/kafka/certs/keystore.pem
+ssl.endpoint.identification.algorithm=
+EOF
+
+# Run a loop to create the topic when kafka is ready
+#  Note that in prod k8s we'd use the Strimzi Operator to manage topics declaratively
+echo "Creating train-telemetry topic, waiting for Kafka to be ready..."
+(
+    # wait for port to open
+    while ! nc -z localhost 9092; do
+        sleep 1
+    done
+
+    echo "Create topic: Kafka is up, creating 'train-telemetry' topic"
+    kafka-topics.sh --create \
+        --if-not-exists \
+        --topic train-telemetry \
+        --bootstrap-server localhost:9092 \
+        --command-config /tmp/client-ssl.properties \
+        --replication-factor 1 \
+        --partitions 3
+) &
 
 # 4. Hand off to the official Apache script
+echo "Kafka environment prepped. Starting Kafka..."
 exec /etc/kafka/docker/run

@@ -1,6 +1,6 @@
 ## This container will run a rabbitMQ server to act as secure control for the trains
 
-### Exposed ports:
+### Container ports:
 * 5671 - AMQP over TLS
 * 15672 - Management UI
 

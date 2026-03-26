@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
@@ -141,15 +142,35 @@ func handleIssueCert(w http.ResponseWriter, r *http.Request) {
 
 	// get the signed certificate from the CA
 	isServer := r.Header.Get("X-Cert-Type") == "server"
-	signedCert, err := certAuth.SignCSR(csrBytes, isServer)
+	certBytes, err := certAuth.SignCSR(csrBytes, isServer)
 	if err != nil {
 		http.Error(w, "Failed to sign CSR: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// get the common name and serial from the cert
+	block, _ := pem.Decode(certBytes)
+	if block == nil {
+		log.Println("failed to decode certificate PEM")
+	} else {
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			http.Error(w, "failed to parse certificate: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		cn := cert.Subject.CommonName
+		// retrieve SAN list from certificate
+		san := ""
+		if len(cert.DNSNames) > 0 {
+			san = fmt.Sprintf(" (%s)", cert.DNSNames[0])
+		}
+		serial := cert.SerialNumber.String()
+		log.Printf("Issued cert for %s%s with serial number %s\n", cn, san, serial)
+	}
+
 	// return the signed certificate in the response
 	w.Header().Set("Content-Type", "application/x-pem-file")
-	if _, err := w.Write(signedCert); err != nil {
+	if _, err := w.Write(certBytes); err != nil {
 		log.Printf("Failed to write response: %v\n", err)
 		return
 	}

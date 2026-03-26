@@ -1,6 +1,6 @@
 ## This container will run a Kafka server to act as pub/sub between the API Gateway and services.
 
-### Exposed ports:
+### Container ports:
 * 9092: Broker / Client Communication
 * 9093: Controller Communication
 

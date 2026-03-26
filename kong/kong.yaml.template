@@ -1,0 +1,27 @@
+# We need to set some things via env vars so we'll use a template here and envsubst in entrypoint.sh
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: train-telemetry-service
+    url: http://localhost:8080 # Dummy upstream - the kafka-log plugin will intercept
+    routes:
+      - name: telemetry-ingress
+        paths:
+          - /telemetry
+        methods:
+          - POST
+        protocols:
+          - https
+
+plugins:
+  # Kafka logging plugin - turns requests into Kafka messages
+  - name: kong-kafka-log
+    route: telemetry-ingress
+    config:
+      ask_id: "TELEMETRY-INGRESS"
+      app_name: "train-telemetry-gateway"
+      bootstrap_servers:
+        - "${KAFKA_SERVER_HOST}:9092"
+      topic: train-telemetry
+      timeout: 10000

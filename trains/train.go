@@ -47,11 +47,12 @@ type (
 		Position    float64 // km along the track (assuming a single track for simplicity)
 		Status      string  // "cruising", "accelerating", "decelerating", "emergency_braking", "stopped"
 
-		IsRegistered bool   // set true when we successfully register with our PKI
-		PrivateKey   string // PEM-encoded private key
-		CACert       string // PEM-encoded CA certificate
-		Cert         string // PEM-encoded certificate
-		CertSerial   string // serial number of the cert, for easy reference
+		IsRegistered    bool   // set true when we successfully register with our PKI
+		PrivateKey      string // PEM-encoded private key
+		CACert          string // PEM-encoded CA certificate
+		Cert            string // PEM-encoded certificate
+		CertSerial      string // serial number of the cert, for easy reference
+		EnableTelemetry bool   // set true to send telemetry data, false to skip
 	}
 
 	Telemetry struct {
@@ -65,6 +66,7 @@ type (
 
 	MQCommand struct {
 		Command      string    `json:"command"`
+		ParamsBool   []bool    `json:"params_bool"`
 		ParamsInt    []int     `json:"params_int"`
 		ParamsFloat  []float64 `json:"params_float"`
 		ParamsString []string  `json:"params_string"`
@@ -82,6 +84,7 @@ func trainRoutine(id int, cargoWeight float64) {
 	train.Position = 0.0
 	train.Status = "stopped"
 	train.IsRegistered = false
+	train.EnableTelemetry = false
 
 	// wait until we successfully register with the PKI
 	for !train.IsRegistered {
@@ -176,6 +179,12 @@ func (train *Train) handleCommand(body []byte) {
 	case "EMERGENCY_STOP":
 		train.Status = "emergency_braking"
 		train.TargetSpeed = 0.0
+	case "ENABLE_TELEMETRY":
+		train.EnableTelemetry = true
+	case "DISABLE_TELEMETRY":
+		train.EnableTelemetry = false
+	default:
+		log.Printf("Train %d received unknown command: %s\n", train.ID, cmd.Command)
 	}
 }
 
@@ -214,6 +223,9 @@ func (train *Train) processPhysics(delta float64) {
 }
 
 func (train *Train) sendTelemetry() error {
+	if !train.EnableTelemetry {
+		return nil
+	}
 	telemetry := Telemetry{
 		TrainID:    train.ID,
 		Timestamp:  time.Now().Unix(),
