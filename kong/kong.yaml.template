@@ -25,3 +25,5 @@ plugins:
         - "${KAFKA_SERVER_HOST}:9092"
       topic: train-telemetry
       timeout: 10000
+      ssl: true
+      ssl_verify: true
