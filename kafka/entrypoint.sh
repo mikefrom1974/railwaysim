@@ -32,6 +32,10 @@ export KAFKA_SSL_KEYSTORE_LOCATION="/etc/kafka/certs/keystore.pem"
 export KAFKA_SSL_TRUSTSTORE_TYPE="PEM"
 export KAFKA_SSL_TRUSTSTORE_LOCATION="/etc/kafka/certs/ca.pem"
 export KAFKA_SSL_CLIENT_AUTH="requested" # set to required for full mTLS
+# Tell Kafka it's OK to have just 1 replica for this lab
+export KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+export KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+export KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
 
 export PATH=$PATH:/opt/kafka/bin
 

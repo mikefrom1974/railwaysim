@@ -4,7 +4,7 @@ _transform: true
 
 services:
   - name: train-telemetry-service
-    url: http://localhost:8080 # Dummy upstream - the kafka-log plugin will intercept
+    url: "http://${INGESTER_ENDPOINT}:8080/ingest"
     routes:
       - name: telemetry-ingress
         paths:
@@ -14,10 +14,30 @@ services:
         protocols:
           - https
 
+  # temporarily disabling this service until I figure out why the plugin is using kafka version 0
+  - name: train-telemetry-service-disabled
+    url: http://localhost:8080 # Dummy upstream - the kafka-log plugin will intercept
+    routes:
+      - name: telemetry-ingress-disabled
+        paths:
+          - /telemetry-disabled
+        methods:
+          - POST
+        protocols:
+          - https
+
 plugins:
+  # Prevent 502 errors sending to dummy upstream
+  - name: request-termination
+    route: telemetry-ingress-disabled
+    config:
+      status_code: 202
+      message: "Accepted"
+  # 
   # Kafka logging plugin - turns requests into Kafka messages
   - name: kong-kafka-log
-    route: telemetry-ingress
+    enabled: false # this plugin is using outdated kafka client version, replacing with a go ingester
+    route: telemetry-ingress-disabled
     config:
       ask_id: "TELEMETRY-INGRESS"
       app_name: "train-telemetry-gateway"

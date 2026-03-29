@@ -20,7 +20,7 @@ FROM apache/kafka:4.1.2
 
 # Install bash and openssl for the entrypoint scripts
 USER root
-RUN apk add --no-cache bash openssl
+RUN apk add --no-cache bash openssl tcpdump
 
 # copy the binary from the builder stage
 COPY --from=builder /app/kafka-enroller /usr/local/bin/kafka-enroller

@@ -1,5 +1,5 @@
-# build command (run from the trains directory and match version to change log):
-# docker build --platform linux/amd64 --build-arg VERSION=0.1.0 -t trains:0.1.0 .
+# build command (run from the ingester directory and match version to change log):
+# docker build --platform linux/amd64 --build-arg VERSION=0.1.0 -t ingester:0.1.0 .
 
 # ========== STAGE 1: binary build ========== 
 FROM golang:1.26-alpine AS builder
@@ -13,27 +13,24 @@ RUN apk add --no-cache git ca-certificates
 # build the app
 WORKDIR /app
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.Version=${VERSION}" -o trains *.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.Version=${VERSION}" -o ingester *.go
 
 # ========== STAGE 2: final image ==========
 FROM alpine:latest
 
 # security: certs and non-root user
 RUN apk add --no-cache ca-certificates tzdata && \
-    addgroup -S trains && adduser -S trains -G trains
+    addgroup -S ingester && adduser -S ingester -G ingester
 
 # copy the binary from the builder stage
 WORKDIR /app
-COPY --from=builder /app/trains .
-
-# create directory for CA data and set permissions
-RUN mkdir -p /app/ca_data && chown -R trains:trains /app/ca_data
+COPY --from=builder /app/ingester .
 
 # switch to unprivileged user
-USER trains
+USER ingester
 
 # expose the port
 EXPOSE 8080
 
 # set the entrypoint to run the API
-ENTRYPOINT ["/app/trains"]
+ENTRYPOINT ["/app/ingester"]

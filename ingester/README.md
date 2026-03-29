@@ -1,12 +1,9 @@
-## This container will run an API to spawn simulated trains.
-
+## This container will run an ingester to convert Kong output to a current kafka client version
 ### Container ports:
-* 8080 - REST API for spawning trains
+* 8080 - ingester endpoint
 
 ### Endpoints:
-* /health # GET - shows version and environment
-* /spawn  # POST - spawns a new train goroutine (default one, add ?count=10 for many)
-* /count  # GET - returns a count of currently running trains
+* /ingest  # POST - takes in a telemetry JSON packet and forwarerds it to kafka train-telemetry topic
 
 ### Contribute:
 * Make branch 
@@ -35,19 +32,6 @@
         * then ENSURE YOU'RE IN THE ROOT FOLDER
         * ```source ./secrets.sh```
         * ```docker-compose up -d```
-
-### Sample RabbitMQ Payloads:
-* {"command":"SET_SPEED", "params_float":[30.0]}
-* {"command":"ENABLE_TELEMETRY"}
-* {"command":"DISABLE_TELEMETRY"}
-* {"command":"EMERGENCY_STOP"}
-
-### Useful cert debugging:
-* Look at Issuer:
-```openssl s_client -connect kong-server-staging:8443 </dev/null 2>/dev/null | openssl x509 -noout -issuer -subject```
-* Check SAN:
-```openssl s_client -connect kong-server-staging:8443 </dev/null 2>/dev/null | openssl x509 -noout -ext subjectAltName```
-
 
 ### Changelog (Semantic Versioning):
 **v0.1.0**

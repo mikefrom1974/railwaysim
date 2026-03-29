@@ -107,7 +107,7 @@ services:
     image: kong-server:0.1.0
     container_name: kong-server-staging
     profiles:
-      - fff
+      - staging
     restart: always
     ports:
       - "8106:8001"
@@ -115,7 +115,12 @@ services:
     environment:
       - PKIISSUETOKEN=${PKIISSUETOKENSTAGING:-} # set from env variable or default to empty
       - KAFKA_SERVER_HOST=kafka-server-staging
+      - INGESTER_ENDPOINT=ingester-staging
       - ENVIRONMENT=STAGING
+    depends_on:
+      - pki-staging
+      - kafka-server-staging
+      - ingester-staging
   
   kong-server-prod:
     image: kong-server:0.1.0
@@ -129,16 +134,48 @@ services:
     environment:
       - PKIISSUETOKEN=${PKIISSUETOKENPROD:-} # set from env variable or default to empty
       - KAFKA_SERVER_HOST=kafka-server-prod
+      - INGESTER_ENDPOINT=ingester-prod
       - ENVIRONMENT=PROD
     depends_on:
       - pki-prod
+      - kafka-server-prod
+      - ingester-prod
   
+  ingester-staging:
+    image: ingester:0.1.0
+    container_name: ingester-staging
+    profiles:
+      - staging
+    restart: always
+    ports:
+      - "8108:8080"
+    environment:
+      - PKIISSUETOKEN=${PKIISSUETOKENSTAGING:-} # set from env variable or default to empty
+      - ENVIRONMENT=STAGING
+    depends_on:
+      - pki-staging
+      - kafka-server-staging
+
+  ingester-prod:
+    image: ingester:0.1.0
+    container_name: ingester-staging
+    profiles:
+      - prod
+    restart: always
+    ports:
+      - "8208:8080"
+    environment:
+      - PKIISSUETOKEN=${PKIISSUETOKENPROD:-} # set from env variable or default to empty
+      - ENVIRONMENT=PROD
+    depends_on:
+      - pki-prod
+      - kafka-server-prod
 
   trains-staging:
     image: trains:0.1.0
     container_name: trains-staging
     profiles:
-      - staging
+      - fff
     restart: always
     ports:
       - "8101:8080"
@@ -147,9 +184,6 @@ services:
       - RABBITMQ_TRAIN_USER=${RABBITMQ_TRAIN_USER:-}
       - RABBITMQ_TRAIN_PASS=${RABBITMQ_TRAIN_PASS:-}
       - ENVIRONMENT=STAGING
-    depends_on:
-      - pki-staging
-      - rabbit-server-staging
 
   trains-prod:
     image: trains:0.1.0

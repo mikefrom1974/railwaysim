@@ -24,6 +24,7 @@ its own version. There is no versioning for the monorepo as a whole.
 * rabbit > RabbitMQ server and management UI.
 * kafka > Kafka service for telemetry data.
 * kong > Kong API Gateway
+* ingester > temporary go-between (kong>kafka) as the community kong has a kafka client version issue
 
 # Ports (dev / staging / prod):
 | container | local | staging | prod |
@@ -34,5 +35,6 @@ its own version. There is no versioning for the monorepo as a whole.
 | rabbit (mgmt) | 15672 | 8103 | 8203 |
 | kafka client | 9092 | 8104 | 8204 |
 | kafka control | 9093 | 8105 | 8205 |
-| kong-server | 8001 | 8106 | 8107 |
-| kong admin | 8443 | 8206 | 8207 |
+| kong-server | 8001 | 8106 | 8206 |
+| kong admin | 8443 | 8107 | 8207 |
+| ingester | 8080 | 8108 | 8208 |

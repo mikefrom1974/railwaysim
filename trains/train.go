@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/json"
@@ -28,14 +29,13 @@ const (
 	pkiLocalEndpoint   = "http://localhost:8080"
 	pkiStagingEndpoint = "http://pki-staging:8080"
 	pkiProdEndpoint    = "http://pki-prod:8080"
-)
 
-var (
-	// we are using cert as both authentication AND authorization.
-	// this should be secure enough for a demo as the train has to have a valid cert.
-	// in a real prod environment we'd use an external auth source
 	rabbitMQStagingEndpoint = "rabbit-server-staging:5671"
 	rabbitMQProdEndpoint    = "rabbit-server-prod:5671"
+
+	kongStagingEndpoint = "https://kong-server-staging:8443"
+	kongProdEndpoint    = "https://kong-server-prod:8443"
+	kongTelemetryURI    = "/telemetry"
 )
 
 type (
@@ -234,20 +234,63 @@ func (train *Train) sendTelemetry() error {
 		Status:     train.Status,
 		CertSerial: train.CertSerial,
 	}
-	var telmString string
-	if b, err := json.MarshalIndent(telemetry, "", " "); err != nil {
+	telemBytes, err := json.MarshalIndent(telemetry, "", " ")
+	if err != nil {
 		return fmt.Errorf("failed to marshal telemetry: %v", err)
-	} else {
-		telmString = string(b)
 	}
 
-	// Send the telemetry to the control system.
-	// This could be an HTTP POST request, a message to a message queue, etc.
-	// For this example, we'll just print it to the console.
-	if false {
-		log.Printf("Train %d telemetry: \n%s\n", train.ID, telmString)
+	// Send the telemetry to the API Gateway
+	tURL := ""
+	switch Environment {
+	case "STAGING":
+		tURL += kongStagingEndpoint
+	case "PROD":
+		tURL += kongProdEndpoint
+	default:
+		return fmt.Errorf("Train %d: '%s' environment, train will not have a valid API gateway .\n", train.ID, Environment)
 	}
-	log.Printf("%d '%s' s: %.2f / %.2f", train.ID, train.Status, train.Speed, train.TargetSpeed)
+	tURL += kongTelemetryURI
+	// Create TLS cert from existing
+	cert, err := tls.X509KeyPair([]byte(train.Cert), []byte(train.PrivateKey))
+	if err != nil {
+		return fmt.Errorf("failed to create TLS certificate: %v", err)
+	}
+	caCertPool := x509.NewCertPool()
+	if !caCertPool.AppendCertsFromPEM([]byte(train.CACert)) {
+		return fmt.Errorf("failed to append CA to CA Pool")
+	}
+	// Create TLS config
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      caCertPool,
+	}
+
+	// Create client
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+		},
+		Timeout: 5 * time.Second,
+	}
+
+	// Send payload
+	req, err := http.NewRequest("POST", tURL, bytes.NewBuffer(telemBytes))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	rsp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %v", err)
+	}
+	defer rsp.Body.Close()
+	body := ""
+	if bb, err := io.ReadAll(rsp.Body); err == nil {
+		body = string(bb)
+	}
+	if rsp.StatusCode != http.StatusOK && rsp.StatusCode != http.StatusAccepted {
+		return fmt.Errorf("invalid status code: %v %s", rsp.StatusCode, body)
+	}
 
 	return nil
 }

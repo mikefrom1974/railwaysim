@@ -27,12 +27,17 @@ export KONG_ADMIN_LISTEN="0.0.0.0:8001"
 export KONG_PLUGINS="bundled,kong-kafka-log"
 
 # mTLS Configuration
-export KONG_PROXY_SSL_CERT=/etc/kafka/certs/cert.pem
-export KONG_PROXY_SSL_CERT_KEY=/etc/kafka/certs/key.pem
+export KONG_SSL_CERT=/etc/kong/certs/cert.pem
+export KONG_SSL_CERT_KEY=/etc/kong/certs/key.pem
+export KONG_PROXY_SSL_CERT=/etc/kong/certs/cert.pem
+export KONG_PROXY_SSL_CERT_KEY=/etc/kong/certs/key.pem
 export KONG_NGINX_PROXY_SSL_VERIFY_CLIENT="on"
 export KONG_NGINX_PROXY_SSL_CLIENT_CERTIFICATE=/etc/kong/certs/ca.pem
 export KONG_NGINX_PROXY_SSL_VERIFY_DEPTH=2
 export KONG_LUA_SSL_TRUSTED_CERTIFICATE=/etc/kong/certs/ca.pem
+
+# turn off verification for our Kong > Ingester traffic since it would likely be a sidecar
+export KONG_PROXY_SSL_VERIFY="off"
 
 # Hand off to the official Kong entrypoint
 echo "Starting Kong..."

@@ -28,6 +28,49 @@
         * ```source ./secrets.sh```
         * ```docker-compose up -d```
 
+### Sample CLI commands
+* Set SSL Properties (for secured kafka):
+```bash
+cat <<EOF > /tmp/client-ssl.properties
+security.protocol=SSL
+ssl.truststore.type=PEM
+ssl.truststore.location=/etc/kafka/certs/ca.pem
+# THE NUCLEAR OPTION: Disables the hostname/identity check
+ssl.endpoint.identification.algorithm=
+EOF
+```
+* List topics:
+```bash
+/opt/kafka/bin/kafka-topics.sh \
+  --bootstrap-server localhost:9092 \
+  --command-config /tmp/client-ssl.properties \
+  --list
+```
+* Consume topic (add --partition X if needed):
+```bash
+/opt/kafka/bin/kafka-console-consumer.sh \
+  --bootstrap-server localhost:9092 \
+  --topic train-telemetry \
+  --from-beginning \
+  --consumer.config /tmp/client-ssl.properties
+```
+* See message counts (offsets) per topic:
+```bash
+/opt/kafka/bin/kafka-get-offsets.sh \
+  --bootstrap-server localhost:9092 \
+  --topic train-telemetry \
+  --command-config /tmp/client-ssl.properties
+```
+* Listen for traffic on Kafka port 9092:
+```bash
+# from docker host
+docker ps | grep kafka-server-staging # get container id
+docker run --rm -it \
+  --net=container:46f34da27d12 \
+  nicolaka/netshoot \
+  tcpdump -i eth0 -vv -n 'port 9092'
+```
+
 ### Changelog (Semantic Versioning):
 **v0.1.0**
 * *Created*: Initial Development (getting Kafka server running)
