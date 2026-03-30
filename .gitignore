@@ -1,3 +1,7 @@
+# ignore IDE settings
+.vscode/
+.idea/
+
 # ignore any bin directory
 bin/
 

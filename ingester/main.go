@@ -66,9 +66,6 @@ func main() {
 	}
 
 	ingester = newIngester()
-	if err := ingester.registerWithPKI(); err != nil {
-		log.Fatalf("error registering with PKI: %s", err.Error())
-	}
 	ingester.KafkaWriter = &kafka.Writer{
 		Addr:         kafka.TCP(ingester.KafkaEndpoint),
 		Topic:        kafkaTelemetryTopic,
@@ -184,7 +181,7 @@ func (i *Ingester) registerWithPKI() error {
 		return fmt.Errorf("failed to read CA certificate from response: %v", err)
 	}
 
-	// create cert pool
+	// create keystore
 	keystore, err := tls.X509KeyPair(certBytes, pkBytes)
 	if err != nil {
 		return fmt.Errorf("failed to combine key and cert: %v", err)
