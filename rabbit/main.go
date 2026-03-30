@@ -86,18 +86,28 @@ func main() {
 	req.Header.Set("Content-Type", "application/application/octet-stream")
 
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatalf("failed to send CSR HTTP request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		respString := ""
-		if b, err := io.ReadAll(resp.Body); err == nil {
-			respString = string(b)
+	var resp *http.Response
+	for {
+		r, err := client.Do(req)
+		if err != nil {
+			log.Printf("failed to send CSR HTTP request: %v", err)
+			time.Sleep(1 * time.Second)
+			continue
 		}
-		log.Fatalf("PKI server returned non-OK status: %s\nResponse: %s", resp.Status, respString)
+		defer r.Body.Close()
+
+		if r.StatusCode != http.StatusOK {
+			respString := ""
+			if b, err := io.ReadAll(r.Body); err == nil {
+				respString = string(b)
+			}
+			log.Printf("PKI server returned non-OK status: %s\nResponse: %s", r.Status, respString)
+			_ = r.Body.Close()
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		resp = r
+		break
 	}
 
 	var certSerial string

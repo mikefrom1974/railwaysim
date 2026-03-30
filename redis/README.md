@@ -28,16 +28,17 @@
 
 ### Sample CLI commands
 * ensure ACL is active (should get NOAUTH error)
-```docker exec -it redis-staging redis-cli PING```
+```docker exec -it redis-server-staging redis-cli PING```
 * test with user and pass
 ```
-docker exec -it redis-staging redis-cli
+docker exec -it redis-server-staging redis-cli
 # Once inside the prompt:
 AUTH <REDIS_USER> <REDIS_PASS> # should get OK
 HSET train:4001 status "cruising" speed 45.0 # should get (integer) 1 or 2
 SET invalid_key status "invalid" # should get NOPERM
 FLUSHALL # should get NOPERM
 KEYS train:* # see current state of trains
+HGETALL train:4001 # see current telemetry for a given train
 ```
 
 ### Changelog (Semantic Versioning):

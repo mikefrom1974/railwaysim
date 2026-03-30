@@ -105,9 +105,14 @@ func newIngester() *Ingester {
 		log.Fatalf("'%s' environment, ingester will not have a valid cert.\n", Environment)
 	}
 
-	// fetch certs
-	if err := i.registerWithPKI(); err != nil {
-		log.Fatalf("error fetching certificates: %s", err.Error())
+	// wait on PKI, then fetch certs
+	for {
+		if err := i.registerWithPKI(); err != nil {
+			log.Printf("error fetching certificates: %s", err.Error())
+		} else {
+			break
+		}
+		time.Sleep(1 * time.Second)
 	}
 
 	return i

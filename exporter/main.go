@@ -114,10 +114,15 @@ func main() {
 		os.Unsetenv("REDIS_PASS") // unset after reading
 	}
 
-	// fetch certs
+	// wait on PKI, then fetch certs
 	cert = new(Cert)
-	if err := cert.RegisterWithPKI(); err != nil {
-		log.Fatalf("failed to register with PKI server: %s", err.Error())
+	for {
+		if err := cert.RegisterWithPKI(); err != nil {
+			log.Printf("failed to register with PKI server: %s", err.Error())
+		} else {
+			break
+		}
+		time.Sleep(1 * time.Second)
 	}
 
 	// start Prometheus scrape endpoint in a goroutine
