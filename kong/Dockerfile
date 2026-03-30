@@ -1,4 +1,4 @@
-# build command (run from the rabbit directory and match version to change log):
+# build command (run from the kong directory and match version to change log):
 # docker build --platform linux/amd64 --build-arg VERSION=0.1.0 -t kong-server:0.1.0 .
 
 # ========== STAGE 1: binary build ========== 

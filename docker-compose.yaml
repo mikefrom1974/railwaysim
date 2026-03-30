@@ -171,6 +171,30 @@ services:
       - pki-prod
       - kafka-server-prod
 
+  redis-staging:
+    image: redis-server:0.1.0
+    container_name: redis-staging
+    profiles:
+      - staging
+    restart: always
+    ports:
+     - "8109:6379"
+    environment:
+      - REDIS_USER=${REDIS_USER:-}
+      - REDIS_PASS=${REDIS_PASS:-}
+    
+  redis-prod:
+    image: redis-server:0.1.0
+    container_name: redis-prod
+    profiles:
+      - prod
+    restart: always
+    ports:
+     - "8209:6379"
+    environment:
+      - REDIS_USER=${REDIS_USER:-}
+      - REDIS_PASS=${REDIS_PASS:-}
+    
   trains-staging:
     image: trains:0.1.0
     container_name: trains-staging

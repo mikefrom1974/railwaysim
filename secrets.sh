@@ -33,3 +33,7 @@ export RABBITMQ_TRAIN_USER=$(bao kv get -namespace=railway -field=RABBITMQ_TRAIN
 export RABBITMQ_TRAIN_PASS=$(bao kv get -namespace=railway -field=RABBITMQ_TRAIN_PASS secret/tokens)
 echo "RabbitMQ credentials successfully exported to environment variables."
 
+echo "Retrieving Redis credentials from OpenBao..."
+export REDIS_USER=$(bao kv get -namespace=railway -field=REDIS_USER secret/tokens)
+export REDIS_PASS=$(bao kv get -namespace=railway -field=REDIS_PASS secret/tokens)
+echo "Redis credentials successfully exported to environment variables."

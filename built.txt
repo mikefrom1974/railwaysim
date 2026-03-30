@@ -5,14 +5,26 @@ built CA PKI
 built simulated train
     spawned via API call
     registers for its own certificate with issue token
-    sends telemetry every second(ish) 
-    TODO: actually send the telemetry somewhere
+    connects to RabbitMQ to listen for commands
+    sends telemetry every second(ish) to API Gateway (Kong)
 
 built RabbitMQ
-    RabbitMQ pulls server certificate from PKI
-    Trains register with RabbitMQ and subscribe to trains.
+    RabbitMQ container pulls server certificate from PKI.
+    Trains register with RabbitMQ and subscribe to queue.
 
 built kafka
-    Kafka service pulls server certificate from PKI
-    API gateway will push telemetry data to Kafka.
-    Redis / Prometheus will have telemetry pulled from Kafka. 
+    Kafka container pulls server certificate from PKI.
+    Kafka will receive telemetry from trains via API Gateway.
+    Redis / Prometheus will have telemetry pulled from Kafka via consumer.
+
+built Kong API Gateway
+    Trains push telemetry to kong, which forwards to the custom go injecter.
+    (the built in kong log plugin was stuck on version 0 for the community build)
+    The injecter will then forward to the kafka service.
+
+built Injector
+    Pulls telemetry from Kong, and pushes it to Kafka.
+
+built Redis
+    Stores current telemetry for each train
+    Will be polled by SPOG UI

@@ -38,3 +38,4 @@ its own version. There is no versioning for the monorepo as a whole.
 | kong-server | 8001 | 8106 | 8206 |
 | kong admin | 8443 | 8107 | 8207 |
 | ingester | 8080 | 8108 | 8208 |
+| redis | 6379 | 8109 | 8209 |
