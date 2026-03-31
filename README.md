@@ -13,6 +13,10 @@ Ensure you are in the root folder.
 (Staging and Prod are labeled as profiles so you can start / stop them individually)
 ```docker compose --profile staging up -d```
 
+# Important Endpoints:
+* http://localhost:8112/ - train controller SPOG
+* http://localhost:8113/ - prometheus
+
 # Folder structure
 Each service lives in its own folder. Each folder will have its own README.md for usage 
 and contributing instructions. The services will be deployed via helm, which will track 
@@ -25,6 +29,11 @@ its own version. There is no versioning for the monorepo as a whole.
 * kafka > Kafka service for telemetry data.
 * kong > Kong API Gateway
 * ingester > temporary go-between (kong>kafka) as the community kong has a kafka client version issue
+* exporter > pulls from kafka and acts as both redis sink and prometheus scrape point
+* redis > stores last-telemetry for each train
+* bff > REST API that lets SPOG talk easily to redis and rabbit
+* spog > React UI to view and control trains
+* prometheus > TSDB; scrapes exporter /metrics and feeds Grafana.
 
 # Ports (dev / staging / prod):
 | container | local | staging | prod |
@@ -40,3 +49,6 @@ its own version. There is no versioning for the monorepo as a whole.
 | ingester | 8080 | 8108 | 8208 |
 | redis | 6379 | 8109 | 8209 |
 | exporter | 8080 | 8110 | 8210 |
+| bff | 8080 | 8111 | 8211 |
+| spog | 8080 | 8112 | 8212 |
+| prometheus | 9090 | 8113 | 8213 |

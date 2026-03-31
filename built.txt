@@ -28,3 +28,12 @@ built Injector
 built Redis
     Stores current telemetry for each train
     Will be polled by SPOG UI
+
+built BFF
+    BackEnd-For-FrontEnd to act as a go-between from SPOG to redis and rabbit.
+
+built SPOG
+    React UI to pull train list from redis and show info/control widgets
+
+built Prometheus
+    TSDB that scrapes the exporter /metrics and feeds Grafana

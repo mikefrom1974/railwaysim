@@ -128,6 +128,17 @@ services:
     environment:
       - ENVIRONMENT=STAGING
   
+  prometheus-server-staging:
+    image: prometheus-server:0.1.0
+    container_name: prometheus-server-staging
+    profiles:
+      - staging
+    restart: always
+    ports:
+      - "8113:9090"
+    environment:
+      - ENVIRONMENT=STAGING
+  
   trains-staging:
     image: trains:0.1.0
     container_name: trains-staging
