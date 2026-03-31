@@ -157,6 +157,25 @@ func main() {
 // makeRouter will set up our API server and URI routes
 func makeRouter() *echo.Echo {
 	rtr := echo.New()
+	// handle CORS issue
+	rtr.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{
+			"http://localhost:8112",
+			"http://127.0.0.1:8112",
+		},
+		AllowMethods: []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodOptions,
+		},
+		AllowHeaders: []string{
+			echo.HeaderOrigin,
+			echo.HeaderContentType,
+			echo.HeaderAccept,
+		},
+		AllowCredentials: false,
+	}))
+
 	rtr.Use(middleware.Recover())
 	rtr.Use(middleware.RateLimiterWithConfig(rateLimitCfg))
 	echo.NotFoundHandler = func(ctx echo.Context) error {

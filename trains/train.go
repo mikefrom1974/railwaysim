@@ -166,7 +166,6 @@ func trainRoutine(id int, cargoWeight float64) {
 }
 
 func (train *Train) handleCommand(body []byte) {
-	log.Printf("train received command %v", string(body))
 	var cmd MQCommand
 	err := json.Unmarshal(body, &cmd)
 	if err != nil {

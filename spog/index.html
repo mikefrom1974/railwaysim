@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Control System</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap');
+        
+        :root {
+            --tw-color-primary: #0ea5e9;
+        }
+        
+        .widget {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .train-list li {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .train-list li:hover {
+            transform: translateX(4px);
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-white">
+    <div id="root" class="min-h-screen"></div>
+
+    <script type="text/babel">
+        const { createRoot } = ReactDOM;
+        const { useState, useEffect } = React;
+
+        // ====================== CONFIG ======================
+        // base URL for the BFF API
+        const API_BASE = ''; 
+        // ===================================================
+
+        // TrainWidget will be a pane in the main grid, populated when the user clicks a train ID
+        function TrainWidget({ id, refreshRate, onClose }) {
+            const [data, setData] = React.useState(null);
+            const [loading, setLoading] = React.useState(true);
+            const [speedInput, setSpeedInput] = React.useState(0.0);
+            const [lastUpdated, setLastUpdated] = React.useState(null);
+
+            const fetchTrainData = async () => {
+                try {
+                    setLoading(true);
+                    const res = await fetch(`${API_BASE}/train/${id}`);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const json = await res.json();
+                    setData(json);
+                    setLastUpdated(new Date());
+                } catch (err) {
+                    console.error(`[Train ${id}] Fetch error:`, err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const sendCommand = async (payload) => {
+                console.log(payload);
+                try {
+                    await fetch(`${API_BASE}/train/command/${id}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    // Refresh immediately after any command
+                    fetchTrainData();
+                } catch (err) {
+                    console.error(`[Train ${id}] Command error:`, err);
+                    alert(`Command failed for Train ${id}. Check console.`);
+                }
+            };
+
+            // Initial load + polling
+            React.useEffect(() => {
+                fetchTrainData();
+                
+                const interval = setInterval(() => {
+                    fetchTrainData();
+                }, refreshRate);
+
+                return () => clearInterval(interval);
+            }, [id, refreshRate]);
+
+            if (!data && loading) {
+                return (
+                    React.createElement('div', {
+                        className: "bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-md shadow-2xl widget"
+                    },
+                        React.createElement('div', { className: "flex justify-between items-center mb-6" },
+                            React.createElement('h2', { className: "text-2xl font-semibold" }, `Train ${id}`),
+                            React.createElement('button', {
+                                onClick: onClose,
+                                className: "text-zinc-400 hover:text-white text-3xl leading-none"
+                            }, '×')
+                        ),
+                        React.createElement('div', { className: "flex items-center justify-center h-64" },
+                            React.createElement('div', { className: "animate-spin w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full" })
+                        )
+                    )
+                );
+            }
+
+            return React.createElement('div', {
+                className: "bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-md shadow-2xl widget"
+            },
+                // Header
+                React.createElement('div', { className: "flex justify-between items-center mb-6" },
+                    React.createElement('h2', { 
+                        className: "text-2xl font-semibold tracking-tight flex items-center gap-2"
+                    },
+                        React.createElement('span', { className: "text-emerald-400" }, '●'),
+                        `Train ${id}`
+                    ),
+                    React.createElement('button', {
+                        onClick: onClose,
+                        className: "text-zinc-400 hover:text-red-400 text-3xl leading-none transition-colors"
+                    }, '×')
+                ),
+
+                // Data grid
+                React.createElement('div', { className: "grid grid-cols-2 gap-6 mb-8" },
+                    // Speed
+                    React.createElement('div', { className: "bg-zinc-800 rounded-xl p-4" },
+                        React.createElement('p', { className: "text-xs uppercase tracking-widest text-zinc-400 mb-1" }, "Current Speed"),
+                        React.createElement('p', { className: "text-4xl font-semibold text-white" }, 
+                            data ? Number(data.speed).toFixed(2) : '—',
+                            React.createElement('span', { className: "text-base font-normal text-zinc-400 ml-1" }, " k/h")
+                        )
+                    ),
+                    // Target Speed
+                    React.createElement('div', { className: "bg-zinc-800 rounded-xl p-4" },
+                        React.createElement('p', { className: "text-xs uppercase tracking-widest text-zinc-400 mb-1" }, "Target Speed"),
+                        React.createElement('p', { className: "text-4xl font-semibold text-white" }, 
+                            data ? Number(data.target_speed).toFixed(2) : '—',
+                            React.createElement('span', { className: "text-base font-normal text-zinc-400 ml-1" }, " k/h")
+                        )
+                    ),
+                    // Position
+                    React.createElement('div', { className: "bg-zinc-800 rounded-xl p-4" },
+                        React.createElement('p', { className: "text-xs uppercase tracking-widest text-zinc-400 mb-1" }, "Position"),
+                        React.createElement('p', { className: "text-4xl font-semibold text-white" }, 
+                            data ? Number(data.position).toFixed(2) : '—',
+                            React.createElement('span', { className: "text-base font-normal text-zinc-400 ml-1" }, " k")
+                        )
+                    ),
+                    // Status
+                    React.createElement('div', { className: "bg-zinc-800 rounded-xl p-4" },
+                        React.createElement('p', { className: "text-xs uppercase tracking-widest text-zinc-400 mb-1" }, "Status"),
+                        React.createElement('p', { 
+                            className: `inline-flex items-center px-4 py-1.5 rounded-2xl text-sm font-medium ${
+                                data && data.status === 'Running' ? 'bg-emerald-500/10 text-emerald-400' :
+                                data && data.status === 'Stopped' ? 'bg-red-500/10 text-red-400' :
+                                'bg-amber-500/10 text-amber-400'
+                            }`
+                        }, 
+                            data ? data.status : 'Unknown'
+                        )
+                    )
+                ),
+
+                // Last updated
+                lastUpdated && React.createElement('div', { 
+                    className: "text-[10px] text-zinc-500 flex items-center justify-end gap-1 mb-6"
+                },
+                    "Updated",
+                    React.createElement('span', { className: "font-mono" }, 
+                        lastUpdated.toLocaleTimeString('en-US', { hour12: false })
+                    )
+                ),
+
+                // Controls
+                React.createElement('div', { className: "space-y-4" },
+                    // Set Speed
+                    React.createElement('div', { className: "flex gap-3" },
+                        React.createElement('input', {
+                            type: "number",
+                            step: "0.1",
+                            value: speedInput,
+                            onChange: (e) => setSpeedInput(parseFloat(e.target.value) || 0),
+                            className: "w-2/3 bg-zinc-800 border border-zinc-700 focus:border-sky-400 rounded-2xl px-5 py-4 text-xl font-medium outline-none transition-colors",
+                            placeholder: "0.0"
+                        }),
+                        React.createElement('button', {
+                            onClick: () => sendCommand({ command: "SET_SPEED", params_float: [speedInput] }),
+                            className: "flex-1 shrink-0 bg-sky-500 hover:bg-sky-600 active:scale-95 transition-all font-semibold px-8 rounded-2xl text-lg"
+                        }, "Set Speed")
+                    ),
+
+                    // Action buttons
+                    React.createElement('div', { className: "grid grid-cols-3 gap-3" },
+                        React.createElement('button', {
+                            onClick: () => sendCommand({ command: "EMERGENCY_STOP" }),
+                            className: "bg-red-600 hover:bg-red-700 active:scale-95 transition-all font-semibold py-6 rounded-3xl text-lg shadow-inner"
+                        }, "Emergency Stop"),
+                        
+                        React.createElement('button', {
+                            onClick: () => sendCommand({ command: "ENABLE_TELEMETRY" }),
+                            className: "bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all font-semibold py-6 rounded-3xl text-lg shadow-inner"
+                        }, "Enable Telemetry"),
+                        
+                        React.createElement('button', {
+                            onClick: () => sendCommand({ command: "DISABLE_TELEMETRY" }),
+                            className: "bg-amber-600 hover:bg-amber-700 active:scale-95 transition-all font-semibold py-6 rounded-3xl text-lg shadow-inner"
+                        }, "Disable Telemetry")
+                    )
+                )
+            );
+        }
+
+        function App() {
+            const [trains, setTrains] = React.useState([]);
+            const [filteredTrains, setFilteredTrains] = React.useState([]);
+            const [searchTerm, setSearchTerm] = React.useState('');
+            const [openTrains, setOpenTrains] = React.useState([]);
+            const [refreshRate, setRefreshRate] = React.useState(5000);
+            const [sidebarLoading, setSidebarLoading] = React.useState(true);
+
+            // Fetch all train IDs
+            React.useEffect(() => {
+                const loadTrains = async () => {
+                    try {
+                        setSidebarLoading(true);
+                        const res = await fetch(`${API_BASE}/trains`);
+                        if (!res.ok) throw new Error('Failed to load train list');
+                        const data = await res.json();
+                        let trainList = [];
+                        if (Array.isArray(data.trains)) {
+                            trainList = data.trains;
+                        }
+                        setTrains(trainList);
+                        setFilteredTrains(trainList);
+                    } catch (err) {
+                        console.error('Failed to load trains from /trains:', err);
+                        // Demo fallback if API is not running yet
+                        const demo = ["Error"];
+                        setTrains(demo);
+                        setFilteredTrains(demo);
+                    } finally {
+                        setSidebarLoading(false);
+                    }
+                };
+                loadTrains();
+            }, []);
+
+            // Filter trains
+            React.useEffect(() => {
+                const filtered = trains.filter(id => 
+                    String(id).toLowerCase().includes(searchTerm.toLowerCase())
+                );
+                setFilteredTrains(filtered);
+            }, [searchTerm, trains]);
+
+            const openTrainWidget = (id) => {
+                if (!openTrains.includes(id)) {
+                    setOpenTrains(prev => [...prev, id]);
+                }
+            };
+
+            const closeTrainWidget = (id) => {
+                setOpenTrains(prev => prev.filter(trainId => trainId !== id));
+            };
+
+            const refreshOptions = [
+                { value: 1000, label: '1 second' },
+                { value: 5000, label: '5 seconds' },
+                { value: 10000, label: '10 seconds' },
+                { value: 30000, label: '30 seconds' }
+            ];
+
+            return React.createElement('div', { className: "min-h-screen bg-zinc-950 flex flex-col" },
+                // Top bar
+                React.createElement('div', { className: "border-b border-zinc-800 bg-zinc-900 px-8 py-6 flex items-center justify-between" },
+                    React.createElement('div', {},
+                        React.createElement('h1', { 
+                            className: "text-4xl font-semibold tracking-tighter flex items-center gap-x-3"
+                        },
+                            React.createElement('span', { className: "text-5xl" }, '🚄'),
+                            "Train Control"
+                        ),
+                        React.createElement('p', { 
+                            className: "text-zinc-400 mt-1 text-lg"
+                        }, "Select trains from the sidebar → monitor telemetry → send commands")
+                    ),
+                    
+                    // Global refresh rate selector
+                    React.createElement('div', { className: "flex items-center gap-x-4" },
+                        React.createElement('span', { className: "text-sm font-medium text-zinc-400 uppercase tracking-widest" }, "Auto-refresh every"),
+                        React.createElement('select', {
+                            value: refreshRate,
+                            onChange: (e) => setRefreshRate(Number(e.target.value)),
+                            className: "bg-zinc-800 border border-zinc-700 text-white rounded-2xl px-5 py-3 text-lg font-medium focus:outline-none focus:border-sky-400 cursor-pointer"
+                        },
+                            refreshOptions.map(opt => 
+                                React.createElement('option', { 
+                                    key: opt.value, 
+                                    value: opt.value 
+                                }, opt.label)
+                            )
+                        )
+                    )
+                ),
+
+                React.createElement('div', { className: "flex flex-1 overflow-hidden" },
+                    // SIDEBAR
+                    React.createElement('div', { 
+                        className: "w-80 bg-zinc-900 border-r border-zinc-800 flex flex-col"
+                    },
+                        // Search
+                        React.createElement('div', { className: "p-6 border-b border-zinc-800" },
+                            React.createElement('div', { className: "relative" },
+                                React.createElement('input', {
+                                    type: "text",
+                                    placeholder: "Filter train IDs…",
+                                    value: searchTerm,
+                                    onChange: (e) => setSearchTerm(e.target.value),
+                                    className: "w-full bg-zinc-800 border border-zinc-700 focus:border-sky-400 rounded-3xl pl-12 py-5 text-lg placeholder-zinc-400 outline-none"
+                                }),
+                                React.createElement('span', { 
+                                    className: "absolute left-5 top-1/2 -translate-y-1/2 text-zinc-400 text-2xl"
+                                }, '🔎')
+                            )
+                        ),
+                        
+                        // Train list
+                        React.createElement('div', { className: "flex-1 overflow-auto p-3 train-list" },
+                            sidebarLoading 
+                                ? React.createElement('div', { className: "flex justify-center py-12" },
+                                    React.createElement('div', { className: "animate-spin w-6 h-6 border-4 border-sky-400 border-t-transparent rounded-full" })
+                                  )
+                                : filteredTrains.length === 0
+                                    ? React.createElement('div', { className: "text-center py-12 text-zinc-400" },
+                                        "No match"
+                                      )
+                                    : React.createElement('div', { className: "space-y-1 px-3" },
+                                        filteredTrains.map(id => 
+                                            React.createElement('div', {
+                                                key: id,
+                                                onClick: () => openTrainWidget(id),
+                                                className: `px-6 py-4 rounded-3xl flex items-center justify-between cursor-pointer text-lg font-medium ${openTrains.includes(id) 
+                                                    ? 'bg-sky-500 text-white shadow-inner' 
+                                                    : 'hover:bg-zinc-800 text-zinc-300'}`
+                                            },
+                                                React.createElement('span', {}, `${id}`),
+                                                openTrains.includes(id) && React.createElement('span', {
+                                                    className: "text-xs bg-white/20 px-3 py-1 rounded-3xl"
+                                                }, 'OPEN')
+                                            )
+                                        )
+                                    )
+                        ),
+                        
+                        // Sidebar footer
+                        React.createElement('div', { className: "p-6 text-xs text-zinc-500 border-t border-zinc-800 flex items-center justify-between" },
+                            React.createElement('span', {}, `${trains.length} trains loaded`),
+                            React.createElement('a', {
+                                href: "#",
+                                onClick: (e) => { e.preventDefault(); window.location.reload(); },
+                                className: "hover:text-sky-400 transition-colors"
+                            }, "↻ Refresh list")
+                        )
+                    ),
+
+                    // MAIN AREA
+                    React.createElement('div', { className: "flex-1 p-8 overflow-auto" },
+                        openTrains.length === 0 
+                            ? React.createElement('div', {
+                                className: "h-full flex flex-col items-center justify-center text-center"
+                              },
+                                React.createElement('div', { className: "text-8xl mb-6 opacity-20" }, '🚄'),
+                                React.createElement('h3', { className: "text-3xl font-light text-zinc-400" }, "Nothing here yet"),
+                                React.createElement('p', { className: "text-zinc-500 max-w-xs mt-3" }, 
+                                    "Pick any train from the sidebar on the left to open its widget."
+                                )
+                              )
+                            : React.createElement('div', {
+                                className: "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8"
+                              },
+                                openTrains.map(id => 
+                                    React.createElement(TrainWidget, {
+                                        key: id,
+                                        id: id,
+                                        refreshRate: refreshRate,
+                                        onClose: () => closeTrainWidget(id)
+                                    })
+                                )
+                            )
+                    )
+                )
+            );
+        }
+
+        // Render the app
+        const root = createRoot(document.getElementById('root'));
+        root.render(
+            React.createElement(
+                React.StrictMode,
+                null,
+                React.createElement(App)
+            )
+        );
+    </script>
+</body>
+</html>
