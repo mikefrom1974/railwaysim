@@ -101,11 +101,27 @@ services:
       - REDIS_PASS=${REDIS_PASS:-}
       - ENVIRONMENT=STAGING
   
+  bff-staging:
+    image: bff:0.1.0
+    container_name: bff-staging
+    profiles:
+      - test
+    restart: always
+    ports:
+      - "8111:8080"
+    environment:
+      - PKIISSUETOKEN=${PKIISSUETOKENSTAGING:-}
+      - RABBITMQ_TRAIN_USER=${RABBITMQ_TRAIN_USER:-}
+      - RABBITMQ_TRAIN_PASS=${RABBITMQ_TRAIN_PASS:-}
+      - REDIS_USER=${REDIS_USER:-}
+      - REDIS_PASS=${REDIS_PASS:-}
+      - ENVIRONMENT=STAGING
+  
   trains-staging:
     image: trains:0.1.0
     container_name: trains-staging
     profiles:
-      - staging
+      - test
     restart: always
     ports:
       - "8101:8080"

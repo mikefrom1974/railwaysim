@@ -18,6 +18,8 @@ import (
 )
 
 const (
+	enableTelemetry = true
+
 	trainInitialWeight = 1000.0 // tons
 	trainMaxSpeed      = 120.0  // km/h
 	accelerationRate   = 0.5    // km/h per second
@@ -56,12 +58,13 @@ type (
 	}
 
 	Telemetry struct {
-		TrainID    int     `json:"train_id"`
-		Timestamp  int64   `json:"timestamp"`
-		Speed      float64 `json:"speed"`
-		Position   float64 `json:"position"`
-		Status     string  `json:"status"`
-		CertSerial string  `json:"cert_serial"`
+		TrainID     int     `json:"train_id"`
+		Timestamp   int64   `json:"timestamp"`
+		Speed       float64 `json:"speed"`
+		TargetSpeed float64 `json:"target_speed"`
+		Position    float64 `json:"position"`
+		Status      string  `json:"status"`
+		CertSerial  string  `json:"cert_serial"`
 	}
 
 	MQCommand struct {
@@ -84,7 +87,7 @@ func trainRoutine(id int, cargoWeight float64) {
 	train.Position = 0.0
 	train.Status = "stopped"
 	train.IsRegistered = false
-	train.EnableTelemetry = false
+	train.EnableTelemetry = enableTelemetry
 
 	// wait until we successfully register with the PKI
 	for !train.IsRegistered {
@@ -163,6 +166,7 @@ func trainRoutine(id int, cargoWeight float64) {
 }
 
 func (train *Train) handleCommand(body []byte) {
+	log.Printf("train received command %v", string(body))
 	var cmd MQCommand
 	err := json.Unmarshal(body, &cmd)
 	if err != nil {
@@ -227,12 +231,13 @@ func (train *Train) sendTelemetry() error {
 		return nil
 	}
 	telemetry := Telemetry{
-		TrainID:    train.ID,
-		Timestamp:  time.Now().Unix(),
-		Speed:      train.Speed,
-		Position:   train.Position,
-		Status:     train.Status,
-		CertSerial: train.CertSerial,
+		TrainID:     train.ID,
+		Timestamp:   time.Now().Unix(),
+		Speed:       train.Speed,
+		TargetSpeed: train.TargetSpeed,
+		Position:    train.Position,
+		Status:      train.Status,
+		CertSerial:  train.CertSerial,
 	}
 	telemBytes, err := json.MarshalIndent(telemetry, "", " ")
 	if err != nil {

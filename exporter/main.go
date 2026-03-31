@@ -69,12 +69,13 @@ var (
 
 // Telemetry should match the train telemetry payload from train > kafka
 type Telemetry struct {
-	TrainID    int     `json:"train_id"`
-	Timestamp  int64   `json:"timestamp"`
-	Speed      float64 `json:"speed"`
-	Position   float64 `json:"position"`
-	Status     string  `json:"status"`
-	CertSerial string  `json:"cert_serial"`
+	TrainID     int     `json:"train_id"`
+	Timestamp   int64   `json:"timestamp"`
+	Speed       float64 `json:"speed"`
+	TargetSpeed float64 `json:"target_speed"`
+	Position    float64 `json:"position"`
+	Status      string  `json:"status"`
+	CertSerial  string  `json:"cert_serial"`
 }
 
 type Cert struct {
@@ -177,11 +178,12 @@ func main() {
 		// update redis
 		rKey := fmt.Sprintf("train:%s", idStr)
 		err = rClient.HSet(context.Background(), rKey, map[string]interface{}{
-			"speed":       telemetry.Speed,
-			"position":    telemetry.Position,
-			"status":      telemetry.Status,
-			"cert_serial": telemetry.CertSerial,
-			"timestamp":   telemetry.Timestamp,
+			"speed":        telemetry.Speed,
+			"target_speed": telemetry.TargetSpeed,
+			"position":     telemetry.Position,
+			"status":       telemetry.Status,
+			"cert_serial":  telemetry.CertSerial,
+			"timestamp":    telemetry.Timestamp,
 		}).Err()
 		if err != nil {
 			log.Printf("failed to update redis with train telemetry: %s\n", err.Error())

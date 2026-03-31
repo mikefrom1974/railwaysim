@@ -1,14 +1,13 @@
-## This container will run an exporter to get telemetry from kafka to redis and prometheus
-
+## This container will run a Backend For Frontend for the SPOG.
 ### Container ports:
-* 8080: Prometheus metrics endpoint
+* 8080: API endpoint
 
 ### Contribute:
 * Make branch 
 * Modify files as needed.
 * Update version (Changelog below, Dockerfile)
 * Test locally
-* ENSURE YOU ARE IN THE *exporter* FOLDER
+* ENSURE YOU ARE IN THE *bff* FOLDER
     * Git commit and push branch
     * Merge in github
     * Switch back to main, pull
