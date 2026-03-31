@@ -37,3 +37,6 @@ built SPOG
 
 built Prometheus
     TSDB that scrapes the exporter /metrics and feeds Grafana
+
+built Grafana
+    Dashboard for historical Prometheus data

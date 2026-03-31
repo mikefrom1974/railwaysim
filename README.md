@@ -16,6 +16,7 @@ Ensure you are in the root folder.
 # Important Endpoints:
 * http://localhost:8112/ - train controller SPOG
 * http://localhost:8113/ - prometheus
+* http://localhost:8114/ - grafana
 
 # Folder structure
 Each service lives in its own folder. Each folder will have its own README.md for usage 
@@ -52,3 +53,4 @@ its own version. There is no versioning for the monorepo as a whole.
 | bff | 8080 | 8111 | 8211 |
 | spog | 8080 | 8112 | 8212 |
 | prometheus | 9090 | 8113 | 8213 |
+| grafana | 3000 | 8114 | 8214 |

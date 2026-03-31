@@ -139,6 +139,17 @@ services:
     environment:
       - ENVIRONMENT=STAGING
   
+  grafana-server-staging:
+    image: grafana-server:0.1.0
+    container_name: grafana-server-staging
+    profiles:
+      - staging
+    restart: always
+    ports:
+      - "8114:3000"
+    environment:
+      - ENVIRONMENT=STAGING
+  
   trains-staging:
     image: trains:0.1.0
     container_name: trains-staging
