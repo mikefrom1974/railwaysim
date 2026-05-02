@@ -59,11 +59,16 @@ var (
 	trainSpeed = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "train_speed_kph",
 		Help: "Current train speed in KPH",
-	}, []string{"train_id", "status"})
+	}, []string{"train_id"})
 
 	trainPosition = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "train_position_offset",
 		Help: "Current train position / offset along track",
+	}, []string{"train_id"})
+
+	trainStatus = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "train_status_code",
+		Help: "Current train status",
 	}, []string{"train_id", "status"})
 )
 
@@ -172,12 +177,20 @@ func main() {
 		idStr := strconv.Itoa(telemetry.TrainID)
 
 		// update Prometheus metrics
-		trainSpeed.WithLabelValues(idStr, telemetry.Status).Set(telemetry.Speed)
-		trainPosition.WithLabelValues(idStr, telemetry.Status).Set(telemetry.Position)
+		trainSpeed.WithLabelValues(idStr).Set(telemetry.Speed)
+		trainPosition.WithLabelValues(idStr).Set(telemetry.Position)
+		statuses := []string{"stopped", "accelerating", "cruising", "decelerating", "emergency_braking"}
+		for _, s := range statuses {
+			if s == telemetry.Status {
+				trainStatus.WithLabelValues(idStr, s).Set(1)
+			} else {
+				trainStatus.WithLabelValues(idStr, s).Set(1)
+			}
+		}
 
 		// update redis
 		rKey := fmt.Sprintf("train:%s", idStr)
-		err = rClient.HSet(context.Background(), rKey, map[string]interface{}{
+		err = rClient.HSet(context.Background(), rKey, map[string]any{
 			"speed":        telemetry.Speed,
 			"target_speed": telemetry.TargetSpeed,
 			"position":     telemetry.Position,

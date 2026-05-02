@@ -20,8 +20,7 @@ Ensure you are in the root folder.
 
 # Folder structure
 Each service lives in its own folder. Each folder will have its own README.md for usage 
-and contributing instructions. The services will be deployed via helm, which will track 
-versions when updates are needed. Each subfolder will use semantic versioning to track 
+and contributing instructions. The services will be deployed via docker compose. Each subfolder will use semantic versioning to track 
 its own version. There is no versioning for the monorepo as a whole.
 
 * pki > Certificate Authority and REST API for trains to register for certificates.
